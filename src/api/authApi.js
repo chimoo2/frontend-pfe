@@ -19,7 +19,7 @@ export async function login(email, password) {
 }
 
 export async function register(payload) {
-  const res = await fetch(`${BASE_URL}/auth/register`, {
+  const res = await fetch(`${BASE_URL}/auth/register-public`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -31,4 +31,32 @@ export async function register(payload) {
   }
 
   return res.json();
+}
+
+export async function forgotPassword(email) {
+  const res = await fetch(`${BASE_URL}/auth/forgot-password?email=${encodeURIComponent(email)}`, {
+    method: 'POST',
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Forgot password failed');
+  }
+
+  return res.text();
+}
+
+export async function resetPassword(token, newPassword) {
+  const res = await fetch(`${BASE_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || 'Reset password failed');
+  }
+
+  return res.text();
 }

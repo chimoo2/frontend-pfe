@@ -8,7 +8,8 @@ export async function apiClient(path, options = {}) {
   };
 
   // ❗ Ne PAS forcer Content-Type si FormData
-  if (!(options.body instanceof FormData)) {
+  // Only set Content-Type when there is a body to send (e.g. POST/PUT)
+  if (options.body != null && !(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
 

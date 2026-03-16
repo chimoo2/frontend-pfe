@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Header() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   const navItems = [
@@ -13,6 +16,15 @@ export default function Header() {
     { to: "/analytics", label: "Analytics" },
     { to: "/technology", label: "Technology" },
   ];
+
+  if (user?.role === "ROLE_ADMIN") {
+    navItems.push({ to: "/admin", label: "Admin" });
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate("/signin");
+  };
 
   return (
     <>
@@ -39,9 +51,17 @@ export default function Header() {
           </nav>
 
           <div className="actions">
-            <NavLink to="/signin" className={({ isActive }) => `nav-signin ${isActive ? 'active' : ''}`}>
-              Sign In
-            </NavLink>
+            {user ? (
+              <div className="user-info">
+                <button className="logout-btn" onClick={handleLogout}>
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <NavLink to="/signin" className={({ isActive }) => `nav-signin ${isActive ? 'active' : ''}`}>
+                Sign In
+              </NavLink>
+            )}
 
             <button
               className="mobile-toggle"
@@ -64,9 +84,17 @@ export default function Header() {
               </NavLink>
             ))}
 
-            <NavLink to="/signin" className="mobile-link mobile-signin" onClick={() => setOpen(false)}>
-              Sign In
-            </NavLink>
+            {user ? (
+              <div className="mobile-user-info">
+                <button className="mobile-logout-btn" onClick={() => { handleLogout(); setOpen(false); }}>
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <NavLink to="/signin" className="mobile-link mobile-signin" onClick={() => setOpen(false)}>
+                Sign In
+              </NavLink>
+            )}
 
             <div className="mobile-cta">
               <button className="cta full">Request a Demo</button>

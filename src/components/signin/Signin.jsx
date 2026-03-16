@@ -17,11 +17,19 @@ export default function Signin() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    try {
-      await login(email.trim().toLowerCase(), password);
 
+    try {
+      const user = await login(email.trim().toLowerCase(), password);
       setLoading(false);
-      navigate("/profile");
+
+      // Redirect based on role
+      if (user?.role === "ROLE_ADMIN") {
+        navigate("/admin");
+      } else if (user?.role === "ROLE_MANAGER") {
+        navigate("/manager");
+      } else {
+        navigate("/profile");
+      }
     } catch (err) {
       setLoading(false);
       // show clean error message (try to extract JSON error payload)
@@ -72,7 +80,7 @@ export default function Signin() {
                 <label className="checkbox">
                   <input type="checkbox" disabled={loading} /> Remember for 30 Days
                 </label>
-                <a className="forgot" href="#">Forgot password</a>
+                <a className="forgot" href="/forgot-password">Mot de passe oublié ?</a>
               </div>
 
               {error && <div className="error" role="alert">{error}</div>}

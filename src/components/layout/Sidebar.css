@@ -1,0 +1,244 @@
+/* Unified Sidebar - Same design for Manager and Admin */
+
+/* Sidebar Toggle Button - Right of sidebar (smaller, refined) */
+.sidebar-toggle {
+  position: fixed;
+  top: calc(72px + 1.25rem);
+  /* sit just to the right of the open sidebar (sidebar width 280px) */
+  left: calc(280px + 10px);
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, rgba(111,115,249,0.96) 0%, rgba(168,107,255,0.96) 100%);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 105;
+  transition: left 0.36s cubic-bezier(0.22,1,0.36,1), transform 0.22s, box-shadow 0.22s, opacity 0.2s;
+  box-shadow: 0 6px 18px rgba(99,102,241,0.12);
+  backdrop-filter: blur(5px);
+}
+
+/* Decorative neon ring */
+.sidebar-toggle::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(123,102,255,0.18), transparent 30%), radial-gradient(circle at 70% 70%, rgba(99,102,241,0.12), transparent 30%);
+  filter: blur(6px);
+  opacity: 0.6;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+.sidebar-toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 18px rgba(99,102,241,0.06);
+  pointer-events: none;
+}
+
+.sidebar-toggle:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 14px 34px rgba(99,102,241,0.18), 0 0 44px rgba(168,107,255,0.06);
+}
+
+.sidebar-toggle:active { transform: translateY(-1px) scale(0.98); }
+
+/* When sidebar is closed, bring the toggle close to viewport edge */
+.sidebar-toggle.closed { left: 8px; border-radius: 12px; }
+
+/* SVG toggle icon styles (polished) */
+.toggle-icon { display: block; width: 18px; height: 14px; }
+.toggle-icon rect { fill: #ffffff; transition: transform 0.34s cubic-bezier(0.22,1,0.36,1), opacity 0.22s, fill 0.25s; transform-origin: 9px 7px; }
+
+/* open state (menu visible): small subtle offset for charm */
+.sidebar-toggle.open .r1 { transform: translateY(0); }
+.sidebar-toggle.open .r2 { transform: translateY(0); opacity: 1; }
+.sidebar-toggle.open .r3 { transform: translateY(0); }
+
+/* closed state -> morph to X */
+.sidebar-toggle.closed .r1 { transform: translateY(6px) rotate(45deg); }
+.sidebar-toggle.closed .r2 { opacity: 0; transform: scaleX(0.45); }
+.sidebar-toggle.closed .r3 { transform: translateY(-6px) rotate(-45deg); }
+
+/* subtle focus ring for accessibility */
+.sidebar-toggle:focus { outline: none; box-shadow: 0 0 0 4px rgba(111,115,249,0.12); }
+
+.sidebar {
+  width: 280px;
+  background: linear-gradient(135deg, #0f172a 0%, #1a1f2e 25%, #11213a 50%, #0f172a 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 80px rgba(99, 102, 241, 0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1.5rem 0;
+  border-right: 1px solid rgba(99, 102, 241, 0.2);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.1), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.08), transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+  animation: ambient-glow 8s ease-in-out infinite;
+}
+
+@keyframes ambient-glow {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1.2; }
+}
+
+/* Sidebar states */
+.sidebar.open { transform: translateX(0); }
+.sidebar.closed { transform: translateX(-280px); }
+
+/* Logo section */
+.logo {
+  display: flex;
+  justify-content: center;
+  padding: 0 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+}
+
+/* Sidebar sections */
+.sidebar-section {
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.section-title {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem 1.5rem;
+  padding: 0;
+}
+
+.sidebar-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-section li {
+  margin: 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  border-radius: 0 24px 24px 0;
+  margin-right: 0.5rem;
+}
+
+.sidebar-link:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  transform: translateX(4px);
+}
+
+.sidebar-link.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.15));
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
+}
+
+.sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+}
+
+.icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.link-label {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Logout section */
+.logout {
+  margin-top: auto;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
+}
+
+.logout .sidebar-link {
+  color: rgba(239, 68, 68, 0.8);
+}
+
+.logout .sidebar-link:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgba(239, 68, 68, 0.95);
+}

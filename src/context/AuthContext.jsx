@@ -48,8 +48,8 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (payload) => {
-    // call backend register endpoint
-    const res = await apiClient('/auth/register', {
+    // call backend public register endpoint (creates ROLE_USER)
+    const res = await apiClient('/auth/register-public', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
