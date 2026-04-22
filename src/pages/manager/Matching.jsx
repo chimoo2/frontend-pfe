@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Typography, Paper, LinearProgress, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Collapse, Chip, Stack } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Box, Typography, Paper, LinearProgress, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Collapse, Chip, Stack, Button } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Topbar from '../../components/layout/Topbar';
 import ManagerSidebar from '../../components/layout/ManagerSidebar';
 import { SidebarProvider } from '../../context/SidebarContext';
-import { getMatchingCandidates, getProjectById } from '../../api/projectApi';
+import { assignEmployeeToProject, getMatchingCandidates, getProjectById } from '../../api/projectApi';
 
 export default function Matching({ projectIdProp, embedded }) {
   const params = useParams();
+  const navigate = useNavigate();
   const projectId = projectIdProp || params.projectId;
   const [matches, setMatches] = useState(null);
   const [project, setProject] = useState(null);
   const [error, setError] = useState(null);
   const [expandedRows, setExpandedRows] = useState(new Set());
+  const [assigningEmployeeId, setAssigningEmployeeId] = useState(null);
+  const [assignedEmployeeIds, setAssignedEmployeeIds] = useState(new Set());
 
   useEffect(() => {
     if (projectId) {
@@ -29,7 +32,33 @@ export default function Matching({ projectIdProp, embedded }) {
   }, [projectId]);
 
 
-  const formatScore = v => (typeof v === 'number' ? v.toFixed(2) : '-');
+  const formatScore = v => {
+    if (typeof v === 'number') return v.toFixed(2);
+    if (typeof v === 'string' && !Number.isNaN(Number(v))) return Number(v).toFixed(2);
+    return '-';
+  };
+
+  // Mirror Python normalize_skill so JS comparisons match backend keys
+  const normalizeSkill = s => {
+    if (!s) return '';
+    const aliases = {
+      'node.js': 'nodejs', 'node js': 'nodejs',
+      'react.js': 'react', 'reactjs': 'react',
+      'vue.js': 'vue', 'vuejs': 'vue',
+      'angular.js': 'angular', 'angularjs': 'angular',
+      'next.js': 'nextjs', 'nuxt.js': 'nuxtjs',
+      'express.js': 'express',
+      'spring boot': 'spring', 'springboot': 'spring',
+      'postgres': 'postgresql', 'postgre': 'postgresql',
+      'mongo': 'mongodb', 'mongo db': 'mongodb',
+      'docker-compose': 'docker', 'k8s': 'kubernetes',
+      'c++': 'cpp', 'c#': 'csharp',
+      'js': 'javascript', 'ts': 'typescript',
+      'py': 'python', 'golang': 'go',
+    };
+    let n = s.toLowerCase().trim().replace(/[^a-z0-9+#.\s]/g, '').replace(/\s+/g, ' ');
+    return aliases[n] || n;
+  };
 
   const formatRequirementLabel = r => {
     let label = '';
@@ -86,6 +115,87 @@ export default function Matching({ projectIdProp, embedded }) {
     setExpandedRows(newSet);
   };
 
+  // Compute skills that are not directly satisfied from matched_requirements.
+  // A skill is "manquante" when there is no direct match entry for it, even if a
+  // related/semantic match partially covers it.
+  const computeMissingSkills = (match) => {
+    if (!Array.isArray(match.matched_requirements) || match.matched_requirements.length === 0) {
+      return Array.isArray(match.missing_skills) ? match.missing_skills : [];
+    }
+    const explanation = match.skill_match_explanation || {};
+    const directNorm = new Set(
+      (explanation.matched_direct_skills || []).map(d => normalizeSkill(d.split(' ')[0]))
+    );
+    return match.matched_requirements
+      .filter(req => {
+        const r = req.requirement || {};
+        return !!r.skill_name && !directNorm.has(normalizeSkill(r.skill_name));
+      })
+      .map(req => req.requirement.skill_name);
+  };
+
+  // Compute a stable overall score from detailed per-skill scores when available.
+  // This avoids displaying inflated top-level values from inconsistent backend payloads.
+  const computeOverallScoreRaw = (match) => {
+    const explanationScores = match?.skill_match_explanation?.individual_skill_scores;
+    if (explanationScores && typeof explanationScores === 'object') {
+      const vals = Object.values(explanationScores)
+        .map(v => Number(v))
+        .filter(v => !Number.isNaN(v));
+      if (vals.length > 0) {
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      }
+    }
+
+    if (Array.isArray(match?.matched_requirements) && match.matched_requirements.length > 0) {
+      const vals = match.matched_requirements
+        .filter(req => !!(req?.requirement || {}).skill_name)
+        .map(req => {
+          const details = req?.match_details || {};
+          const n = Number(details.req_score ?? details.overall_skill_score);
+          return Number.isNaN(n) ? null : n;
+        })
+        .filter(v => v != null);
+
+      if (vals.length > 0) {
+        return vals.reduce((a, b) => a + b, 0) / vals.length;
+      }
+    }
+
+    return match?.overall_score ?? match?.skill_match_score ?? match?.matchingScore;
+  };
+
+  const viewTrainingPage = (match, missingSkillsForTraining) => {
+    const trainingData = Array.isArray(match.recommended_training)
+      ? match.recommended_training
+      : typeof match.recommended_training === 'string'
+      ? match.recommended_training.split(/;\s*/).filter(Boolean)
+      : [];
+
+    navigate(`/manager/matching/${projectId}/courses`, {
+      state: {
+        training: trainingData,
+        employeeName: match.employee_name || match.name || match.employeeId || 'Candidat',
+        projectName: project?.name || '',
+        missingSkills: missingSkillsForTraining || computeMissingSkills(match),
+      },
+    });
+  };
+
+  const handleAssignEmployee = async (employeeId) => {
+    if (!employeeId || !projectId) return;
+
+    try {
+      setAssigningEmployeeId(employeeId);
+      await assignEmployeeToProject(projectId, employeeId);
+      setAssignedEmployeeIds((prev) => new Set(prev).add(employeeId));
+    } catch (err) {
+      setError(err.message || 'Failed to assign employee');
+    } finally {
+      setAssigningEmployeeId(null);
+    }
+  };
+
   const content = (
     <Box sx={{ flex: 1, p: embedded ? 2 : 4 }}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#1a237e' }}>
@@ -93,10 +203,10 @@ export default function Matching({ projectIdProp, embedded }) {
           </Typography>
 
           <Typography variant="body2" sx={{ mb: 3, color: '#555', lineHeight: 1.6 }}>
-            Le tableau ci-dessous classe les employes selon un score global calcule
-            automatiquement en combinant leurs competences, leur experience et la
-            criticite des exigences du projet. Cliquez sur une ligne pour visualiser
-            l'analyse detaillee de chaque profil et comprendre les raisons du classement.
+            Le tableau ci-dessous classe les employes selon le score renvoyé par le
+            service de matching. Pour un test clair, utilisez un projet avec des
+            exigences précises telles que Python, FastAPI et Machine Learning :
+            le candidat David Engels doit alors ressortir comme meilleur match.
           </Typography>
 
           {project && project.requirements && project.requirements.length > 0 && (
@@ -137,23 +247,30 @@ export default function Matching({ projectIdProp, embedded }) {
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#1976d2' }}>
                     <TableCell align="center" sx={{ width: 50, color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>#</TableCell>
+                    <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Assign</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Nom</TableCell>
                     <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Score global</TableCell>
                     <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Manquantes</TableCell>
+                    <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Formation</TableCell>
                     <TableCell align="center" sx={{ width: 50, color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Details</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {(matches.matches || []).map((m, idx) => {
-                    const overallScore = formatScore(m.overall_score || m.matchingScore);
-                    const directScore = formatScore(m.direct_skill_score ?? m.skill_match_score ?? m.matchingScore);
-                    const relatedScore = formatScore(m.related_skill_score ?? m.related_skills_score);
-                    const semanticScore = formatScore(m.semantic_skill_score ?? 0);
+                    const overallScoreRaw = computeOverallScoreRaw(m);
+                    const overallScore = formatScore(overallScoreRaw);
+                    const directScore = formatScore(m.direct_score ?? m.direct_skill_score ?? 0);
+                    const relatedScore = formatScore(m.related_score ?? m.related_skill_score ?? m.related_skills_score ?? 0);
+                    const semanticScore = formatScore(m.semantic_score ?? m.semantic_skill_score ?? 0);
                     const expScore = formatScore(m.experience_score);
 
-                    const missingSkills = Array.isArray(m.missing_skills) ? m.missing_skills : [];
+                    const overallPercent = typeof overallScoreRaw === 'number' ? Math.min(overallScoreRaw * 100, 100) : !isNaN(Number(overallScoreRaw)) ? Math.min(Number(overallScoreRaw) * 100, 100) : 0;
+                    const missingSkills = computeMissingSkills(m);
                     const training = Array.isArray(m.recommended_training) ? m.recommended_training.join('; ') : '';
                     const isExpanded = expandedRows.has(idx);
+                    const employeeId = m.employee_id || m.id || m.employeeId;
+                    const isAssigned = assignedEmployeeIds.has(employeeId);
+                    const isAssigning = assigningEmployeeId === employeeId;
 
                     return (
                       <React.Fragment key={idx}>
@@ -169,6 +286,17 @@ export default function Matching({ projectIdProp, embedded }) {
                           <TableCell align="center" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '1.05rem', py: 1.5 }}>
                             {idx + 1}
                           </TableCell>
+                          <TableCell align="center" sx={{ py: 1.5 }}>
+                            <Button
+                              variant={isAssigned ? 'contained' : 'outlined'}
+                              size="small"
+                              disabled={!employeeId || isAssigned || isAssigning}
+                              onClick={() => handleAssignEmployee(employeeId)}
+                              sx={{ textTransform: 'none', minWidth: 96 }}
+                            >
+                              {isAssigned ? 'Assigned' : isAssigning ? 'Assigning...' : 'Assign'}
+                            </Button>
+                          </TableCell>
                           <TableCell sx={{ fontWeight: 600, color: '#1a237e', py: 1.5 }}>
                             {m.employee_name || m.name || m.employeeId || '-'}
                           </TableCell>
@@ -180,14 +308,14 @@ export default function Matching({ projectIdProp, embedded }) {
                               <Box sx={{ width: 70 }}>
                                 <LinearProgress
                                   variant="determinate"
-                                  value={Math.min(parseFloat(overallScore) * 100, 100)}
+                                  value={overallPercent}
                                   sx={{
                                     height: 7,
                                     borderRadius: 3,
                                     bgcolor: '#e8eaf6',
                                     '& .MuiLinearProgress-bar': {
                                       borderRadius: 3,
-                                      backgroundColor: parseFloat(overallScore) > 0.7 ? '#4caf50' : parseFloat(overallScore) > 0.4 ? '#ff9800' : '#f44336',
+                                      backgroundColor: overallPercent > 70 ? '#4caf50' : overallPercent > 40 ? '#ff9800' : '#f44336',
                                     },
                                   }}
                                 />
@@ -196,6 +324,17 @@ export default function Matching({ projectIdProp, embedded }) {
                           </TableCell>
                           <TableCell sx={{ maxWidth: 250, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '0.9rem', color: '#555', py: 1.5 }}>
                             {renderMissingSkills(missingSkills)}
+                          </TableCell>
+                          <TableCell align="center" sx={{ py: 1.5 }}>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => viewTrainingPage(m, missingSkills)}
+                              disabled={!training || training.length === 0}
+                              sx={{ textTransform: 'none', color: '#1976d2', borderColor: '#90caf9' }}
+                            >
+                              Voir formation
+                            </Button>
                           </TableCell>
                           <TableCell align="center" sx={{ py: 1.5 }}>
                             <IconButton
@@ -211,7 +350,7 @@ export default function Matching({ projectIdProp, embedded }) {
                           </TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell colSpan={5} sx={{ p: 0 }}>
+                          <TableCell colSpan={7} sx={{ p: 0 }}>
                             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                               <Box sx={{ p: 3, bgcolor: '#f9fafb', borderTop: '2px solid #e0e0e0' }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, color: '#1976d2', fontSize: '1.05rem' }}>
@@ -219,8 +358,10 @@ export default function Matching({ projectIdProp, embedded }) {
                                 </Typography>
                                 <Paper sx={{ p: 2, mb: 2, bgcolor: '#e3f2fd', border: '1px solid #90caf9' }}>
                                   <Typography sx={{ fontStyle: 'italic', fontSize: '0.95rem', color: '#1565c0' }}>
-                                    <strong>Score global calculé comme :</strong><br />
-                                    0.5 × compétences directes ({directScore}) + 0.3 × compétences liées ({relatedScore}) + 0.2 × compétences sémantiques ({semanticScore})
+                                    <strong>Score global :</strong> {overallScore} (moyenne des scores individuels par compétence requise)
+                                  </Typography>
+                                  <Typography sx={{ mt: 1, fontSize: '0.9rem', color: '#1565c0' }}>
+                                    Scores moyens par type de correspondance : direct ({directScore}) · lié ({relatedScore}) · sémantique ({semanticScore})
                                   </Typography>
                                 </Paper>
 
@@ -246,16 +387,7 @@ export default function Matching({ projectIdProp, embedded }) {
                                   </Box>
                                 )}
 
-                                {training && (
-                                  <Box sx={{ mb: 2, p: 1.5, bgcolor: '#ffebee', borderLeft: '4px solid #f44336' }}>
-                                    <Typography sx={{ fontWeight: 600, color: '#c62828', fontSize: '0.95rem' }}>
-                                      Formation recommandee:
-                                    </Typography>
-                                    <Typography sx={{ ml: 1, fontSize: '0.9rem', color: '#d32f2f' }}>
-                                      {training}
-                                    </Typography>
-                                  </Box>
-                                )}
+
 
                                 {m.matched_requirements && (
                                   <Box>
@@ -263,7 +395,7 @@ export default function Matching({ projectIdProp, embedded }) {
                                       Exigences du projet:
                                     </Typography>
                                     <ul style={{ margin: '8px 0', paddingLeft: 24, color: '#555' }}>
-                                      {m.matched_requirements.map((req, reqIdx) => {
+                                      {m.matched_requirements.filter(req => !!(req.requirement || {}).skill_name).map((req, reqIdx) => {
                                         const r = req.requirement || {};
                                         let label = '';
                                         if (r.skill_name) label = r.skill_name;
@@ -284,28 +416,41 @@ export default function Matching({ projectIdProp, embedded }) {
                                         }
 
                                         const matchDetails = req.match_details || {};
-                                        const directMatches = Array.isArray(matchDetails.direct_matches)
-                                          ? matchDetails.direct_matches
-                                          : [];
-                                        const relatedMatches = Array.isArray(matchDetails.matched_related_skills)
-                                          ? matchDetails.matched_related_skills
-                                          : Array.isArray(matchDetails.related_matches)
-                                          ? matchDetails.related_matches
-                                          : [];
-                                        const semanticMatches = Array.isArray(matchDetails.matched_semantic_skills)
-                                          ? matchDetails.matched_semantic_skills
-                                          : [];
 
-                                        const isSatisfied =
-                                          r.skill_name &&
-                                          directMatches.some((dm) => dm && dm.toString().toLowerCase() === r.skill_name.toString().toLowerCase());
+                                        // Resolve match type from global explanation (original skill names, not expanded set)
+                                        const explanation = m.skill_match_explanation || {};
+                                        const reqNorm = normalizeSkill(r.skill_name);
+
+                                        // Use individual_skill_scores from the top-level explanation.
+                                        // These are computed per ORIGINAL skill name (no expansion dilution)
+                                        // and are already correct — same source as the direct/lié summary scores.
+                                        const indScores = explanation.individual_skill_scores || {};
+                                        const reqScore = r.skill_name
+                                          ? (indScores[reqNorm] != null ? indScores[reqNorm] : (matchDetails.req_score ?? matchDetails.overall_skill_score))
+                                          : (matchDetails.req_score ?? matchDetails.overall_skill_score);
+
+                                        const directEntry = (explanation.matched_direct_skills || []).find(d => {
+                                          const skillPart = d.split(' ')[0];
+                                          return normalizeSkill(skillPart) === reqNorm;
+                                        });
+                                        const relatedEntry = (explanation.matched_related_skills || []).find(d => {
+                                          const skillPart = d.split(' ')[0];
+                                          return normalizeSkill(skillPart) === reqNorm;
+                                        });
+                                        const semanticEntry = (explanation.matched_semantic_skills || []).find(d => {
+                                          const skillPart = d.split(' ')[0];
+                                          return normalizeSkill(skillPart) === reqNorm;
+                                        });
+
+                                        const isSatisfied = !!directEntry;
+                                        const isMissing = !directEntry && !relatedEntry && !semanticEntry && !!r.skill_name;
 
                                         return (
                                           <li key={reqIdx} style={{ marginBottom: 10 }}>
                                             <strong>{label || '(Non spécifiée)'}</strong>
-                                            {matchDetails.overall_skill_score != null && (
+                                            {reqScore != null && (
                                               <span style={{ marginLeft: 8, color: '#1976d2' }}>
-                                                ({matchDetails.overall_skill_score.toFixed(2)})
+                                                ({typeof reqScore === 'number' ? reqScore.toFixed(2) : reqScore})
                                               </span>
                                             )}
 
@@ -313,31 +458,37 @@ export default function Matching({ projectIdProp, embedded }) {
                                               {isSatisfied && (
                                                 <li>
                                                   <strong>✓ Directement satisfait</strong>
+                                                  {directEntry && (
+                                                    <span style={{ marginLeft: 6, color: '#388e3c' }}>
+                                                      — {directEntry}
+                                                    </span>
+                                                  )}
                                                 </li>
                                               )}
 
-                                              {directMatches?.length > 0 && (
+                                              {relatedEntry && (
                                                 <li>
-                                                  <strong>Compétences directes:</strong> {directMatches.join(', ')}
+                                                  <strong>Compétence liée:</strong>{' '}
+                                                  <span style={{ color: '#f57c00' }}>{relatedEntry}</span>
                                                 </li>
                                               )}
 
-                                              {relatedMatches?.length > 0 && (
+                                              {semanticEntry && (
                                                 <li>
-                                                  <strong>Compétences liées:</strong> {relatedMatches.join(', ')}
+                                                  <strong>Compétence sémantique:</strong>{' '}
+                                                  <span style={{ color: '#7b1fa2' }}>{semanticEntry}</span>
                                                 </li>
                                               )}
 
-                                              {semanticMatches?.length > 0 && (
+                                              {isMissing && (
                                                 <li>
-                                                  <strong>Compétences sémantiques:</strong> {semanticMatches.join(', ')}
+                                                  <strong style={{ color: '#d32f2f' }}>Manquante:</strong>{' '}
+                                                  <span style={{ color: '#d32f2f' }}>{r.skill_name}</span>
                                                 </li>
                                               )}
 
-                                              {!isSatisfied && r.skill_name && (
-                                                <li>
-                                                  <strong>Manquante:</strong> {r.skill_name}
-                                                </li>
+                                              {!r.skill_name && !directEntry && !relatedEntry && !semanticEntry && (
+                                                <li><strong>Aucune correspondance trouvée</strong></li>
                                               )}
                                             </ul>
                                           </li>

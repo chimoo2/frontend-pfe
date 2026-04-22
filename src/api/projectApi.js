@@ -88,3 +88,32 @@ export async function getLatestMatching(projectId) {
     throw error;
   }
 }
+
+export async function assignEmployeeToProject(projectId, employeeId) {
+  try {
+    return await apiClient(`/api/projects/${projectId}/assign/${encodeURIComponent(employeeId)}`, {
+      method: 'POST',
+    });
+  } catch (error) {
+    console.error(`Error assigning employee ${employeeId} to project ${projectId}:`, error);
+    throw error;
+  }
+}
+
+export async function getAssignedProjectsForUser(userId) {
+  try {
+    return await apiClient(`/api/projects/assigned/user/${userId}`);
+  } catch (error) {
+    console.error(`Error fetching assigned projects for user ${userId}:`, error);
+    throw error;
+  }
+}
+
+export async function getEmployeeNotifications(userId) {
+  try {
+    return await apiClient(`/api/projects/notifications/user/${userId}`);
+  } catch (error) {
+    console.error(`Error fetching employee notifications for user ${userId}:`, error);
+    throw error;
+  }
+}

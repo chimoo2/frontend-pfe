@@ -9,7 +9,9 @@ export default function Sidebar({
   useNavLink = false,
   activeItem,
   onItemClick,
-  onLogout
+  onLogout,
+  userName,
+  userRole
 }) {
   return (
     <>
@@ -17,7 +19,21 @@ export default function Sidebar({
       <aside className={`sidebar ${isOpen ? "open" : "closed"}`}>
         <div className="logo">
           <img src="/logo.png" alt="CareerSavvy Logo" className="sidebar-logo" />
+          {isOpen && <span className="logo-text">CareerSavvy</span>}
         </div>
+
+        {/* User info badge */}
+        {isOpen && userName && (
+          <div className="sidebar-user-badge">
+            <div className="sidebar-user-avatar">
+              {(userName?.[0] || "A").toUpperCase()}
+            </div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">{userName}</span>
+              <span className="sidebar-user-role">{userRole || "Admin"}</span>
+            </div>
+          </div>
+        )}
 
         {sections.map((section, sectionIndex) => (
           <div key={sectionIndex} className="sidebar-section">
@@ -74,7 +90,7 @@ export default function Sidebar({
         onClick={toggleSidebar}
         aria-label="Toggle sidebar"
         aria-expanded={isOpen}
-        title={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
+        title={isOpen ? "Close menu" : "Open menu"}
       >
         <svg className="toggle-icon" width="18" height="14" viewBox="0 0 18 14" aria-hidden="true">
           <rect className="r1" x="0" y="0" width="18" height="2" rx="1" />

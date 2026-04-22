@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box } from '@mui/material';
 import KanbanColumn from './KanbanColumn';
 import ProjectDetailModal from './ProjectDetailModal';
 import { getProjectsByManager, updateProject, deleteProject } from '../../api/projectApi';
 import { useAuth } from '../../context/AuthContext';
+import './KanbanBoard.css';
 
 const initialData = { todo: [], inprogress: [], completed: [] };
 
@@ -130,36 +130,37 @@ export default function KanbanBoard() {
 
   return (
     <>
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6, px: 4, bgcolor: '#eef2f7' }}>
-        <Box sx={{ width: '100%', maxWidth: 1320, bgcolor: '#ffffff', borderRadius: 14, p: 4, boxShadow: '0 18px 50px rgba(15,23,42,0.06)' }}>
-          <Box sx={{ display: 'flex', gap: 28, overflowX: 'auto', alignItems: 'flex-start', minHeight: 520 }}>
-            <KanbanColumn
-              name="To Do"
-              color="#6366f1"
-              cards={data.todo}
-              onCardClick={(c)=>setSelected(c)}
-              hideAdd
-            />
-            <KanbanColumn
-              name="In Progress"
-              color="#f59e0b"
-              cards={data.inprogress}
-              onCardClick={(c)=>setSelected(c)}
-              hideAdd
-            />
-            <KanbanColumn
-              name="Completed"
-              color="#10b981"
-              cards={data.completed}
-              onCardClick={(c)=>setSelected(c)}
-              hideAdd
-            />
-          </Box>
-        </Box>
-      </Box>
+      <div className="kb-board">
+        <div className="kb-columns">
+          <KanbanColumn
+            name="To Do"
+            color="#6366f1"
+            icon="📋"
+            cards={data.todo}
+            onCardClick={(c) => setSelected(c)}
+            hideAdd
+          />
+          <KanbanColumn
+            name="In Progress"
+            color="#f59e0b"
+            icon="⚡"
+            cards={data.inprogress}
+            onCardClick={(c) => setSelected(c)}
+            hideAdd
+          />
+          <KanbanColumn
+            name="Completed"
+            color="#10b981"
+            icon="✅"
+            cards={data.completed}
+            onCardClick={(c) => setSelected(c)}
+            hideAdd
+          />
+        </div>
+      </div>
       <ProjectDetailModal
         open={!!selected}
-        onClose={()=>setSelected(null)}
+        onClose={() => setSelected(null)}
         project={selected}
         onSave={handleSave}
         onDelete={handleDelete}

@@ -77,9 +77,7 @@ export default function Signin() {
               </div>
 
               <div className="row small muted">
-                <label className="checkbox">
-                  <input type="checkbox" disabled={loading} /> Remember for 30 Days
-                </label>
+                
                 <a className="forgot" href="/forgot-password">Mot de passe oublié ?</a>
               </div>
 
@@ -89,10 +87,7 @@ export default function Signin() {
 
               <div className="or">OR</div>
 
-              <div className="socials">
-                <button className="social google" type="button" disabled={loading}>Sign up with Google</button>
-                <button className="social apple" type="button" disabled={loading}>Sign up with Facebook</button>
-              </div>
+              
 
               <p className="muted center">Don't have an account? <Link to="/signup">Sign up</Link></p>
             </form>
@@ -102,7 +97,7 @@ export default function Signin() {
         <div className="signin-right">
           <div className="promo">
             <h1>Welcome back! Please sign in to your
-              <span className="underline"> careersavvy</span> account
+              <span className="underline"> CapTalent</span> account
             </h1>
             <p className="promo-sub">Welcome to the AI-Powered Career Guidance & Skills Analysis Platform</p>
 

@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { Box, TextField, Typography, Button, Grid, Paper, InputAdornment } from '@mui/material';
-import { Business as BusinessIcon, Person as PersonIcon, DateRange as DateRangeIcon, Timer as TimerIcon, Flag as FlagIcon, Description as DescriptionIcon } from '@mui/icons-material';
 import RequiredSkillsList from './RequiredSkillsList';
 import SmartSkillSelector from './SmartSkillSelector';
 import SkillCategoryRequirementsTable from './SkillCategoryRequirementsTable';
@@ -55,149 +53,115 @@ export default function ProjectForm({ initial = {}, value, onChange, onSubmit })
   };
 
   return (
-    <Paper sx={{ p: 5, borderRadius: 3, boxShadow: '0 10px 40px rgba(15,23,42,0.08)', borderLeft: '6px solid #6366f1', bgcolor: '#fbfdff' }}>
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, letterSpacing: 0.5, color: '#334155' }}>
-        Créer un nouveau projet
-      </Typography>
-      <Box sx={{ height: 3, width: 50, bgcolor: '#6366f1', mb: 4, borderRadius: 2 }} />
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Nom du projet"
-            value={form.name}
-            onChange={handleChange('name')}
-            variant="outlined"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <BusinessIcon sx={{ color: '#6366f1', mr: 1 }} />
-                </InputAdornment>
-              )
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Manager"
-            value={form.manager}
-            onChange={handleChange('manager')}
-            variant="outlined"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <PersonIcon sx={{ color: '#6366f1', mr: 1 }} />
-                </InputAdornment>
-              ),
-              readOnly: true
-            }}
-            helperText="Automatiquement défini avec votre email"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Date de début"
-            value={form.startDate}
-            onChange={handleChange('startDate')}
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            variant="outlined"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <DateRangeIcon sx={{ color: '#6366f1', mr: 1 }} />
-                </InputAdornment>
-              )
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Durée"
-            value={form.duration}
-            onChange={handleChange('duration')}
-            variant="outlined"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <TimerIcon sx={{ color: '#6366f1', mr: 1 }} />
-                </InputAdornment>
-              )
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            label="Statut"
-            value={form.status}
-            onChange={handleChange('status')}
-            variant="outlined"
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FlagIcon sx={{ color: '#6366f1', mr: 1 }} />
-                </InputAdornment>
-              )
-            }}
-            SelectProps={{
-              native: true
-            }}
-          >
-            <option value="">--</option>
-            <option value="To Do">To Do</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-          </TextField>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label="Description"
-            value={form.description}
-            onChange={handleChange('description')}
-            variant="outlined"
-            fullWidth
-            multiline
-            rows={4}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <DescriptionIcon sx={{ color: '#6366f1', mr: 1 }} />
-                </InputAdornment>
-              )
-            }}
-          />
-        </Grid>
-      </Grid>
+    <div className="cp-card">
+      <div className="cp-card-header">
+        <div className="cp-card-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="3" stroke="currentColor" strokeWidth="1.5"/><path d="M7 7h6M7 10h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+        </div>
+        <div>
+          <h2 className="cp-card-title">Créer un nouveau projet</h2>
+          <p className="cp-card-subtitle">Remplissez les informations du projet</p>
+        </div>
+      </div>
+      <div className="cp-card-body">
+        <div className="cp-form">
+          {/* Form Fields */}
+          <div className="cp-form-grid">
+            <div className="cp-field">
+              <label className="cp-label">Nom du projet</label>
+              <div className="cp-input-wrap">
+                <span className="cp-input-icon">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M5 6h6M5 8.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                </span>
+                <input className="cp-input has-icon" value={form.name || ''} onChange={handleChange('name')} placeholder="Nom du projet" />
+              </div>
+            </div>
+            <div className="cp-field">
+              <label className="cp-label">Manager</label>
+              <div className="cp-input-wrap">
+                <span className="cp-input-icon">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.3"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                </span>
+                <input className="cp-input has-icon" value={form.manager || ''} onChange={handleChange('manager')} readOnly />
+              </div>
+              <span className="cp-helper">Automatiquement défini avec votre email</span>
+            </div>
+            <div className="cp-field">
+              <label className="cp-label">Date de début</label>
+              <div className="cp-input-wrap">
+                <span className="cp-input-icon">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" strokeWidth="1.3"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                </span>
+                <input className="cp-input has-icon" type="date" value={form.startDate || ''} onChange={handleChange('startDate')} />
+              </div>
+            </div>
+            <div className="cp-field">
+              <label className="cp-label">Durée</label>
+              <div className="cp-input-wrap">
+                <span className="cp-input-icon">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/><path d="M8 5v3.5l2.5 1.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <input className="cp-input has-icon" value={form.duration || ''} onChange={handleChange('duration')} placeholder="ex: 6 mois" />
+              </div>
+            </div>
+            <div className="cp-field">
+              <label className="cp-label">Statut</label>
+              <div className="cp-input-wrap">
+                <span className="cp-input-icon">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 3h10v3l-3.5 3L13 12v3H3v-3l3.5-3L3 6V3z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <select className="cp-input cp-select has-icon" value={form.status || ''} onChange={handleChange('status')}>
+                  <option value="">--</option>
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
+            <div className="cp-field">
+              <label className="cp-label">Nombre de personnes</label>
+              <div className="cp-input-wrap">
+                <span className="cp-input-icon">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><circle cx="5.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.3"/><circle cx="11" cy="5" r="2" stroke="currentColor" strokeWidth="1.2"/><path d="M1 13c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" strokeWidth="1.3"/><path d="M10 8.8c1.8.3 3.2 1.6 3.2 3.7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                </span>
+                <input className="cp-input has-icon" type="number" min={1} value={form.count || ''} onChange={handleChange('count')} placeholder="ex: 5" />
+              </div>
+              <span className="cp-helper">Nombre de personnes nécessaires pour le projet</span>
+            </div>
+          </div>
 
-      <SmartSkillSelector onSkillsSelected={handleSkillsChange} />
+          <div className="cp-field">
+            <label className="cp-label">Description</label>
+            <textarea
+              className="cp-input cp-textarea"
+              rows={4}
+              value={form.description || ''}
+              onChange={handleChange('description')}
+              placeholder="Décrivez le projet, ses objectifs et les livrables clés..."
+            />
+          </div>
 
-      <RequiredSkillsList skills={form.skillsNeeded} onChange={handleSkillsChange} />
+          {/* Skill Selector */}
+          <SmartSkillSelector onSkillsSelected={handleSkillsChange} />
 
-      <SkillCategoryRequirementsTable 
-        requirements={form.categoryRequirements || []} 
-        onChange={handleCategoryRequirementsChange} 
-      />
+          {/* Required Skills List */}
+          <RequiredSkillsList skills={form.skillsNeeded} onChange={handleSkillsChange} />
 
-      <Box sx={{ mt: 4, textAlign: 'right' }}>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          sx={{
-            textTransform: 'none',
-            bgcolor: 'linear-gradient(90deg, #6366f1, #4f46e5)',
-            px: 4,
-            py: 1.5,
-            '&:hover': { bgcolor: 'linear-gradient(90deg, #4f46e5, #6366f1)' }
-          }}
-        >
-          Enregistrer le projet
-        </Button>
-      </Box>
-    </Paper>
+          {/* Category Requirements */}
+          <SkillCategoryRequirementsTable
+            requirements={form.categoryRequirements || []}
+            onChange={handleCategoryRequirementsChange}
+          />
+
+          {/* Submit */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+            <button className="cp-btn cp-btn-primary" onClick={handleSubmit}>
+              <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M13.3 4.7L6.5 11.5 2.7 7.7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Enregistrer le projet
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

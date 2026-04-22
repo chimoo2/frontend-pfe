@@ -1,0 +1,170 @@
+/* ============================================
+   Career Page – Premium UI  (cr-*)
+   ============================================ */
+
+/* ---------- Page container ---------- */
+.cr-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1.5rem 4rem;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* ---------- Banner ---------- */
+.cr-banner {
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #0ea5e9 100%);
+  padding: 2.8rem 2rem 2.2rem;
+  margin: 0 -1.5rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.cr-banner-dots {
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='1' fill='rgba(255,255,255,0.07)'/%3E%3C/svg%3E");
+  background-size: 24px 24px;
+}
+.cr-banner-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.cr-title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.cr-subtitle {
+  margin: 0.5rem 0 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  max-width: 560px;
+  line-height: 1.6;
+}
+.cr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ---------- Feature cards ---------- */
+.cr-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+.cr-feature {
+  background: #fff;
+  border-radius: 18px;
+  padding: 1.8rem 1.5rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.04);
+  text-align: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.cr-feature:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(30, 64, 175, 0.1);
+}
+.cr-feature-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  background: #f0f7ff;
+}
+.cr-feature:nth-child(2) .cr-feature-icon { background: #f0fdfa; }
+.cr-feature:nth-child(3) .cr-feature-icon { background: #f5f3ff; }
+
+.cr-feature h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+.cr-feature p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* ---------- Form section ---------- */
+.cr-form-section {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 32px rgba(30, 64, 175, 0.06);
+  overflow: hidden;
+}
+.cr-form-header {
+  text-align: center;
+  padding: 2.5rem 2rem 1.5rem;
+  background: linear-gradient(180deg, #f8faff 0%, #fff 100%);
+  border-bottom: 1px solid #f1f5f9;
+}
+.cr-form-tag {
+  display: inline-block;
+  padding: 0.3rem 0.9rem;
+  border-radius: 50px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+.cr-form-header h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+.cr-form-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  max-width: 520px;
+  margin-inline: auto;
+  line-height: 1.55;
+}
+.cr-form-body {
+  padding: 2rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .cr-banner { padding: 2rem 1.2rem 1.6rem; margin: 0 -1.5rem 1.5rem; }
+  .cr-banner-content { flex-direction: column; align-items: flex-start; }
+  .cr-features { grid-template-columns: 1fr; }
+  .cr-form-header { padding: 2rem 1.5rem 1.2rem; }
+  .cr-form-body { padding: 1.5rem; }
+}
+@media (max-width: 480px) {
+  .cr-page { padding: 0 0.75rem 3rem; }
+  .cr-banner { margin: 0 -0.75rem 1.2rem; border-radius: 0 0 16px 16px; }
+  .cr-title { font-size: 1.3rem; }
+  .cr-form-header h2 { font-size: 1.25rem; }
+}

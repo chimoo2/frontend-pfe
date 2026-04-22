@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  TextField, 
-  Typography, 
-  Card, 
-  CardContent, 
-  Chip, 
-  Alert, 
-  CircularProgress,
-  Button,
-  Grid
-} from '@mui/material';
-import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { getDomains, getSkillsByDomain, getSkillsByFamily } from '../../api/skillApi';
+import { getDomains, getSkillsByDomain } from '../../api/skillApi';
 
 /**
  * SmartSkillSelector - Let manager select skills by Domain, Family, or Category
@@ -31,16 +18,12 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
   
   // Results
   const [suggestedSkills, setSuggestedSkills] = useState([]);
-  const [domainSkills, setDomainSkills] = useState([]); // Store full domain skills
-  // when user toggles a skill we keep the full object so metadata is preserved
+  const [domainSkills, setDomainSkills] = useState([]);
   const [selectedSkills, setSelectedSkills] = useState([]);
   
   // UI state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // derived values
-  const selectedSkillNames = selectedSkills.map(s => s.skillName);
 
   // Load domains on mount
   useEffect(() => {
@@ -56,7 +39,6 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
         setLoading(false);
       }
     };
-
     loadDomains();
   }, []);
 
@@ -68,7 +50,6 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
           const skills = await getSkillsByDomain(selectedDomain);
           setDomainSkills(skills || []);
           setSuggestedSkills(skills || []);
-          // Extract unique families and categories
           const familiesSet = new Set();
           const categoriesSet = new Set();
           (skills || []).forEach(skill => {
@@ -97,14 +78,12 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
     if (selectedFamily) {
       const filtered = (domainSkills || []).filter(s => s.family === selectedFamily);
       setSuggestedSkills(filtered);
-      // Extract categories from filtered skills
       const categoriesSet = new Set();
       filtered.forEach(skill => {
         if (skill.category) categoriesSet.add(skill.category);
       });
       setCategories(Array.from(categoriesSet));
     } else {
-      // No family selected, show all domain skills and categories
       setSuggestedSkills(domainSkills);
       const categoriesSet = new Set();
       (domainSkills || []).forEach(skill => {
@@ -112,7 +91,6 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
       });
       setCategories(Array.from(categoriesSet));
     }
-    // Reset category selection when family changes
     setSelectedCategory('');
   }, [selectedFamily, domainSkills]);
 
@@ -134,10 +112,8 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
     const exists = selectedSkills.find(s => s.skillName === skillName);
     let updated;
     if (exists) {
-      // remove
       updated = selectedSkills.filter(s => s.skillName !== skillName);
     } else {
-      // find metadata from domainSkills or suggestedSkills
       const meta = (domainSkills || []).find(s => s.skillName === skillName) ||
                    (suggestedSkills || []).find(s => s.skillName === skillName) || {};
       updated = [...selectedSkills, {
@@ -146,6 +122,7 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
         family: meta.family,
         category: meta.category,
         type: meta.type,
+        criticality: meta.criticality || null,
         level: 'Intermediate',
         count: 1
       }];
@@ -153,11 +130,11 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
 
     setSelectedSkills(updated);
 
-    // tell parent the full objects including metadata
     const skillsData = updated.map(s => ({
       skillName: s.skillName,
       level: s.level,
       count: s.count,
+      criticality: s.criticality,
       domain: s.domain,
       family: s.family,
       category: s.category,
@@ -173,124 +150,105 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
   };
 
   return (
-    <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+    <div className="cp-section">
+      <h4 className="cp-section-title">
+        <svg width="17" height="17" fill="none" viewBox="0 0 17 17"><circle cx="8.5" cy="8.5" r="6.5" stroke="#6366f1" strokeWidth="1.3"/><path d="M8.5 5.5v3.5l2.5 1.5" stroke="#6366f1" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
         Sélectionner les compétences requises
-      </Typography>
+      </h4>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <div className="cp-alert cp-alert-error">{error}</div>}
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {/* Domain Selector */}
-        <Grid item xs={12} sm={6} md={4}>
-          <FormControl fullWidth disabled={loading || domains.length === 0}>
-            <InputLabel>Domaine</InputLabel>
-            <Select
-              value={selectedDomain}
-              label="Domaine"
-              onChange={(e) => setSelectedDomain(e.target.value)}
-            >
-              <MenuItem value="">-- Sélectionner --</MenuItem>
-              {domains.map(domain => (
-                <MenuItem key={domain} value={domain}>{domain}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
+      <div className="cp-selector-grid">
+        <div className="cp-field">
+          <label className="cp-label">Domaine</label>
+          <select
+            className="cp-input cp-select"
+            value={selectedDomain}
+            onChange={(e) => setSelectedDomain(e.target.value)}
+            disabled={loading || domains.length === 0}
+          >
+            <option value="">-- Sélectionner --</option>
+            {domains.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div className="cp-field">
+          <label className="cp-label">Famille</label>
+          <select
+            className="cp-input cp-select"
+            value={selectedFamily}
+            onChange={(e) => setSelectedFamily(e.target.value)}
+            disabled={!selectedDomain || families.length === 0}
+          >
+            <option value="">-- Sélectionner --</option>
+            {families.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+        </div>
+        <div className="cp-field">
+          <label className="cp-label">Catégorie</label>
+          <select
+            className="cp-input cp-select"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            disabled={!selectedDomain || categories.length === 0}
+          >
+            <option value="">-- Sélectionner --</option>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
 
-        {/* Family Selector */}
-        <Grid item xs={12} sm={6} md={4}>
-          <FormControl fullWidth disabled={!selectedDomain || families.length === 0}>
-            <InputLabel>Famille</InputLabel>
-            <Select
-              value={selectedFamily}
-              label="Famille"
-              onChange={(e) => setSelectedFamily(e.target.value)}
-            >
-              <MenuItem value="">-- Sélectionner --</MenuItem>
-              {families.map(family => (
-                <MenuItem key={family} value={family}>{family}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
-        {/* Category Selector */}
-        <Grid item xs={12} sm={6} md={4}>
-          <FormControl fullWidth disabled={!selectedDomain || categories.length === 0}>
-            <InputLabel>Catégorie</InputLabel>
-            <Select
-              value={selectedCategory}
-              label="Catégorie"
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <MenuItem value="">-- Sélectionner --</MenuItem>
-              {categories.map(category => (
-                <MenuItem key={category} value={category}>{category}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-      </Grid>
-
-      {/* Skills Display */}
+      {/* Available Skills */}
       {suggestedSkills.length > 0 && (
-        <Card sx={{ mb: 3, bgcolor: '#f8fafc' }}>
-          <CardContent>
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-              Compétences disponibles
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {suggestedSkills.map((skill) => (
-                <Chip
+        <div className="cp-chips-card">
+          <p className="cp-chips-label">Compétences disponibles</p>
+          <div className="cp-chips-wrap">
+            {suggestedSkills.map((skill) => {
+              const isSelected = selectedSkills.some(s => s.skillName === skill.skillName);
+              return (
+                <button
                   key={skill.skillName}
-                  label={skill.skillName}
+                  className={`cp-chip ${isSelected ? 'cp-chip-selected' : ''}`}
                   onClick={() => toggleSkillSelection(skill.skillName)}
-                  variant={selectedSkills.some(s=>s.skillName===skill.skillName) ? 'filled' : 'outlined'}
-                  color={selectedSkills.some(s=>s.skillName===skill.skillName) ? 'primary' : 'default'}
-                  sx={{
-                    fontWeight: selectedSkills.some(s=>s.skillName===skill.skillName) ? 700 : 400,
-                    opacity: skill.criticality >= 4 ? 1 : 0.7,
-                  }}
-                />
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+                  style={{ opacity: skill.criticality >= 4 ? 1 : 0.75 }}
+                >
+                  {skill.skillName}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Selected Skills */}
       {selectedSkills.length > 0 && (
-        <Card sx={{ mb: 3, border: '2px solid #6366f1' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                Compétences sélectionnées ({selectedSkillNames.length})
-              </Typography>
-              <Button size="small" onClick={clearSelection} color="error">
-                Effacer
-              </Button>
-            </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {selectedSkills.map((s) => (
-                <Chip
-                  key={s.skillName}
-                  label={s.skillName}
-                  onDelete={() => toggleSkillSelection(s.skillName)}
-                  color="primary"
-                  variant="filled"
-                />
-              ))}
-            </Box>
-          </CardContent>
-        </Card>
+        <div className="cp-selected-card">
+          <div className="cp-selected-header">
+            <span className="cp-selected-count">
+              Compétences sélectionnées ({selectedSkills.length})
+            </span>
+            <button className="cp-btn cp-btn-sm cp-btn-danger-text" onClick={clearSelection}>
+              Effacer
+            </button>
+          </div>
+          <div className="cp-chips-wrap">
+            {selectedSkills.map((s) => (
+              <span key={s.skillName} className="cp-chip cp-chip-selected">
+                {s.skillName}
+                <span className="cp-chip-delete" onClick={() => toggleSkillSelection(s.skillName)}>
+                  <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
       )}
 
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-          <CircularProgress />
-        </Box>
+        <div className="cp-loading">
+          <div className="cp-spinner" />
+          <span>Chargement des domaines...</span>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }

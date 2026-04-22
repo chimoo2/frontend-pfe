@@ -1,0 +1,467 @@
+/* ============================================
+   Overview – Premium Profile UI
+   ============================================ */
+
+/* ---------- Tokens ---------- */
+:root {
+  --ov-primary: #1e3a8a;
+  --ov-primary-light: #3b82f6;
+  --ov-accent: #0ea5e9;
+  --ov-text: #0f172a;
+  --ov-text2: #64748b;
+  --ov-border: #e2e8f0;
+  --ov-bg: #f1f5f9;
+  --ov-card: #ffffff;
+  --ov-radius: 20px;
+  --ov-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  --ov-shadow-lg: 0 12px 40px rgba(0,0,0,0.08);
+}
+
+/* ---------- Container ---------- */
+.ov-container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+  background: var(--ov-bg);
+}
+
+/* ---------- Banner ---------- */
+.ov-banner {
+  height: 140px;
+  border-radius: var(--ov-radius);
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #0ea5e9 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--ov-shadow);
+}
+.ov-banner-pattern {
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1.5' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E");
+  background-size: 30px 30px;
+}
+
+/* ---------- Card ---------- */
+.ov-card {
+  background: var(--ov-card);
+  border-radius: var(--ov-radius);
+  border: 1px solid var(--ov-border);
+  box-shadow: var(--ov-shadow);
+  padding: 2rem 2.25rem;
+  animation: ovFadeUp .45s ease-out both;
+}
+.ov-card:nth-child(2) { animation-delay: .05s; }
+.ov-card:nth-child(3) { animation-delay: .12s; }
+.ov-card:nth-child(4) { animation-delay: .18s; }
+
+/* ---------- Profile Card ---------- */
+.ov-profile-card {
+  margin-top: -60px;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ov-avatar-wrap {
+  flex-shrink: 0;
+}
+.ov-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ov-primary) 0%, var(--ov-accent) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 4px solid var(--ov-card);
+  box-shadow: 0 6px 24px rgba(30,58,138,0.18);
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  transition: box-shadow .2s;
+}
+.ov-avatar:hover {
+  box-shadow: 0 8px 32px rgba(30,58,138,0.25);
+}
+.ov-avatar.has-photo .ov-avatar-initials { display: none; }
+.ov-avatar-initials {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: .5px;
+  user-select: none;
+}
+.ov-avatar-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--ov-primary-light);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(.85);
+  transition: opacity .2s, transform .2s;
+  padding: 0;
+}
+.ov-avatar:hover .ov-avatar-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Profile body */
+.ov-profile-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.ov-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ov-text);
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -.3px;
+}
+.ov-role-chip,
+.ov-contact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ov-text2);
+  width: fit-content;
+}
+.ov-role-chip {
+  color: var(--ov-primary-light);
+  background: rgba(59,130,246,.08);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* Edit floating */
+.ov-edit-floating {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.ov-edit-group {
+  display: flex;
+  gap: .5rem;
+}
+.ov-btn-edit,
+.ov-btn-save,
+.ov-btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: .55rem 1.1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: .82rem;
+  border: none;
+  cursor: pointer;
+  transition: all .18s;
+}
+.ov-btn-edit {
+  background: rgba(59,130,246,.08);
+  color: var(--ov-primary-light);
+}
+.ov-btn-edit:hover {
+  background: rgba(59,130,246,.15);
+}
+.ov-btn-save {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(5,150,105,.25);
+}
+.ov-btn-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(5,150,105,.3);
+}
+.ov-btn-cancel {
+  background: #f1f5f9;
+  color: var(--ov-text2);
+}
+.ov-btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+/* ---------- Section title ---------- */
+.ov-section-title {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ov-text);
+  margin: 0 0 1.5rem;
+  letter-spacing: -.2px;
+}
+.ov-section-title svg {
+  color: var(--ov-primary-light);
+}
+
+/* ---------- Details card – fields ---------- */
+.ov-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.ov-field {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.ov-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ov-text2);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+.ov-field-icon {
+  font-size: .9rem;
+  line-height: 1;
+}
+.ov-field-value {
+  font-size: .95rem;
+  font-weight: 500;
+  color: var(--ov-text);
+  padding: .6rem .85rem;
+  background: var(--ov-bg);
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.ov-field-input {
+  padding: .65rem .85rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--ov-border);
+  background: #fff;
+  font-size: .92rem;
+  color: var(--ov-text);
+  font-family: inherit;
+  transition: border-color .18s, box-shadow .18s;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.ov-field-input:focus {
+  border-color: var(--ov-primary-light);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+}
+
+/* ---------- Skills card ---------- */
+.ov-skill-form {
+  margin-bottom: 1.5rem;
+}
+.ov-skill-form-row {
+  display: flex;
+  gap: .6rem;
+  align-items: stretch;
+}
+.ov-select {
+  max-width: 170px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+.ov-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 1.2rem;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, var(--ov-primary-light), var(--ov-accent));
+  color: #fff;
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform .18s, box-shadow .18s;
+  box-shadow: 0 4px 12px rgba(59,130,246,.25);
+}
+.ov-btn-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59,130,246,.35);
+}
+
+/* Skills list */
+.ov-skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+.ov-skill-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: .85rem 1rem;
+  background: var(--ov-bg);
+  border-radius: 14px;
+  border: 1px solid var(--ov-border);
+  transition: border-color .18s, box-shadow .18s, transform .18s;
+}
+.ov-skill-item:hover {
+  border-color: rgba(59,130,246,.25);
+  box-shadow: 0 2px 12px rgba(59,130,246,.08);
+  transform: translateX(2px);
+}
+.ov-skill-rank {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--ov-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--ov-primary-light);
+  border: 1px solid var(--ov-border);
+  flex-shrink: 0;
+}
+.ov-skill-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.ov-skill-top {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+}
+.ov-skill-name {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--ov-text);
+}
+.ov-skill-level {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  border: 1.5px solid;
+}
+.ov-skill-bar-track {
+  width: 100%;
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.ov-skill-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .5s cubic-bezier(.4,0,.2,1);
+}
+.ov-skill-delete {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .18s;
+  flex-shrink: 0;
+}
+.ov-skill-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Empty state */
+.ov-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+}
+.ov-empty p {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ov-text);
+  margin: .5rem 0 0;
+}
+.ov-empty span {
+  font-size: .85rem;
+  color: var(--ov-text2);
+}
+
+/* ---------- Animations ---------- */
+@keyframes ovFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 700px) {
+  .ov-container {
+    padding: 1rem 1rem 3rem;
+  }
+  .ov-banner { height: 100px; }
+  .ov-profile-card {
+    margin-top: -40px;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    gap: 1rem;
+    padding: 1.5rem;
+  }
+  .ov-avatar { width: 76px; height: 76px; }
+  .ov-avatar-initials { font-size: 1.5rem; }
+  .ov-name { font-size: 1.25rem; }
+  .ov-edit-floating { margin-left: 0; width: 100%; }
+  .ov-edit-group { width: 100%; }
+  .ov-edit-group button { flex: 1; justify-content: center; }
+  .ov-btn-edit { width: 100%; justify-content: center; }
+  .ov-fields-grid { grid-template-columns: 1fr; }
+  .ov-card {  padding: 1.5rem 1.25rem; }
+  .ov-skill-form-row {
+    flex-direction: column;
+  }
+  .ov-select { max-width: none; }
+  .ov-btn-add { padding: .6rem 1rem; justify-content: center; }
+}
+
+@media (max-width: 400px) {
+  .ov-card { padding: 1.1rem 1rem; }
+  .ov-avatar { width: 64px; height: 64px; }
+  .ov-avatar-initials { font-size: 1.25rem; }
+}

@@ -1,12 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { apiClient, BASE_URL } from "../../api/apiClient";
+import { getEmployeeNotifications } from "../../api/projectApi";
+import EmployeeRecommendations from "./EmployeeRecommendations";
 import "./EmployeeProfile.css";
 import SkillGraph from "../SkillGraph";
+import CareerRecommendationForm from "./CareerRecommendationForm";
+import CareerPage from "../career/career";
+import ResumePage from "../resume/Resume";
+import Overview from "../overview/Overview";
+import Sidebar from "./EmployeSidebar";
+import SkillSection from "../skill/skill";
+import Dashboardemploye from "../dashboardemploye/Dashboardemploye";
 
-// Fonctions utilitaires de persistence
-const getStoredLanguages = () => {
-	const saved = localStorage.getItem('employeeLanguages');
+// Fonctions utilitaires de persistence (scoped par userId)
+const getStoredLanguages = (userId) => {
+	if (!userId) return [];
+	const saved = localStorage.getItem(`employeeLanguages_${userId}`);
 	if (saved) {
 		try {
 			return JSON.parse(saved);
@@ -20,8 +30,9 @@ const getStoredLanguages = () => {
 	];
 };
 
-const getStoredChecklist = () => {
-	const saved = localStorage.getItem('employeeChecklist');
+const getStoredChecklist = (userId) => {
+	if (!userId) return [];
+	const saved = localStorage.getItem(`employeeChecklist_${userId}`);
 	if (saved) {
 		try {
 			return JSON.parse(saved);
@@ -38,8 +49,9 @@ const getStoredChecklist = () => {
 	];
 };
 
-const getStoredSkills = () => {
-	const saved = localStorage.getItem('employeeSkills');
+const getStoredSkills = (userId) => {
+	if (!userId) return [];
+	const saved = localStorage.getItem(`employeeSkills_${userId}`);
 	if (saved) {
 		try {
 			return JSON.parse(saved);
@@ -50,8 +62,9 @@ const getStoredSkills = () => {
 	return [];
 };
 
-const getStoredAiSkills = () => {
-	const saved = localStorage.getItem('employeeAiSkills');
+const getStoredAiSkills = (userId) => {
+	if (!userId) return [];
+	const saved = localStorage.getItem(`employeeAiSkills_${userId}`);
 	if (saved) {
 		try {
 			return JSON.parse(saved);
@@ -64,60 +77,68 @@ const getStoredAiSkills = () => {
 
 export default function EmployeeProfile() {
 	const [profile, setProfile] = useState(null);
+	const [activeSection, setActiveSection] = useState('overview');
 	const [dragActive, setDragActive] = useState(false);
 	const [file, setFile] = useState(null);
 	const [uploading, setUploading] = useState(false);
 	const [progress, setProgress] = useState(0);
 	const [showSkillModal, setShowSkillModal] = useState(false);
-	const [skills, setSkills] = useState(getStoredSkills);
+	const [skills, setSkills] = useState([]);
 	const [editingSkill, setEditingSkill] = useState(null);
 	const [editForm, setEditForm] = useState({name: '', level: 'Basic', experience: 0});
 	const [newSkill, setNewSkill] = useState({name: '', level: 'Basic', experience: 0});
 	const fileInputRef = useRef(null);
 
-	const [aiSkills, setAiSkills] = useState(getStoredAiSkills);
+	const [aiSkills, setAiSkills] = useState([]);
 	const [editingAiSkill, setEditingAiSkill] = useState(null);
-	const [editAiForm, setEditAiForm] = useState({name: '', category: '', domain: '', market_demand: 0, experience: 0});
+	const [editAiForm, setEditAiForm] = useState({name: '', category: '', family: '', type: '', level: '', domain: '', market_demand: 0, experience: 0});
 
-	// Languages state - initialised from localStorage
-	const [languages, setLanguages] = useState(getStoredLanguages);
+	// Languages state
+	const [languages, setLanguages] = useState([]);
 	const [showLanguageModal, setShowLanguageModal] = useState(false);
 	const [editingLanguage, setEditingLanguage] = useState(null);
 	const [languageForm, setLanguageForm] = useState({name: '', level: 'Basic', proficiency: 0});
 
-	// Checklist state - initialised from localStorage
-	const [checklistItems, setChecklistItems] = useState(getStoredChecklist);
+	// Checklist state
+	const [checklistItems, setChecklistItems] = useState([]);
 	const [showChecklistModal, setShowChecklistModal] = useState(false);
 	const [editingChecklistItem, setEditingChecklistItem] = useState(null);
 	const [checklistForm, setChecklistForm] = useState({title: '', completed: false});
 
+	// Photo and top skills
+	const [photoPreview, setPhotoPreview] = useState(null);
+	const [showTopSkillsModal, setShowTopSkillsModal] = useState(false);
+	const photoInputRef = useRef(null);
+	const [employeeNotifications, setEmployeeNotifications] = useState([]);
+	const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+
 	// Save languages to localStorage whenever they change
 	useEffect(() => {
-		if (languages.length > 0) {
-			localStorage.setItem('employeeLanguages', JSON.stringify(languages));
+		if (profile?.id && languages.length > 0) {
+			localStorage.setItem(`employeeLanguages_${profile.id}`, JSON.stringify(languages));
 		}
-	}, [languages]);
+	}, [languages, profile?.id]);
 
 	// Save checklist to localStorage whenever it changes
 	useEffect(() => {
-		if (checklistItems.length > 0) {
-			localStorage.setItem('employeeChecklist', JSON.stringify(checklistItems));
+		if (profile?.id && checklistItems.length > 0) {
+			localStorage.setItem(`employeeChecklist_${profile.id}`, JSON.stringify(checklistItems));
 		}
-	}, [checklistItems]);
+	}, [checklistItems, profile?.id]);
 
 	// Save skills to localStorage whenever they change
 	useEffect(() => {
-		if (skills.length > 0) {
-			localStorage.setItem('employeeSkills', JSON.stringify(skills));
+		if (profile?.id) {
+			localStorage.setItem(`employeeSkills_${profile.id}`, JSON.stringify(skills));
 		}
-	}, [skills]);
+	}, [skills, profile?.id]);
 
 	// Save AI skills to localStorage whenever they change
 	useEffect(() => {
-		if (aiSkills.length > 0) {
-			localStorage.setItem('employeeAiSkills', JSON.stringify(aiSkills));
+		if (profile?.id) {
+			localStorage.setItem(`employeeAiSkills_${profile.id}`, JSON.stringify(aiSkills));
 		}
-	}, [aiSkills]);
+	}, [aiSkills, profile?.id]);
 
 	useEffect(() => {
 		const token = localStorage.getItem("authToken");
@@ -131,11 +152,20 @@ export default function EmployeeProfile() {
 	useEffect(() => {
 		if (!profile?.id) return;
 
+		// Load per-user data from localStorage
+		setSkills(getStoredSkills(profile.id));
+		setLanguages(getStoredLanguages(profile.id));
+		setChecklistItems(getStoredChecklist(profile.id));
+
+		// Load photo
+		const savedPhoto = localStorage.getItem(`employeePhoto_${profile.id}`);
+		if (savedPhoto) setPhotoPreview(savedPhoto);
+
 		apiClient(`/documents/cv-skills/${profile.id}`)
 			.then(data => {
 				const parsed = typeof data === "string" ? JSON.parse(data) : data;
 				const backendSkills = parsed.skills || [];
-				const storedSkills = getStoredAiSkills();
+				const storedSkills = getStoredAiSkills(profile.id);
 				
 				// Si nous avons des données localStorage, les fusionner avec le backend
 				if (storedSkills.length > 0) {
@@ -148,8 +178,139 @@ export default function EmployeeProfile() {
 					setAiSkills(backendSkills);
 				}
 			})
-			.catch(err => console.error("Erreur skills IA:", err));
+			.catch(() => {
+				// Pas de CV uploadé → vider les skills IA
+				setAiSkills([]);
+				localStorage.removeItem(`employeeAiSkills_${profile.id}`);
+			});
+
+		getEmployeeNotifications(profile.id)
+			.then((items) => setEmployeeNotifications(Array.isArray(items) ? items : []))
+			.catch(() => setEmployeeNotifications([]));
 	}, [profile]);
+
+	const formatNotificationScore = (score) => {
+		if (score == null || Number.isNaN(Number(score))) return "-";
+		return Number(score).toFixed(2);
+	};
+
+	const renderNotificationBell = () => {
+		const count = employeeNotifications.length;
+		return (
+			<div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+				<button
+					type="button"
+					onClick={() => setShowNotificationPanel((prev) => !prev)}
+					title="Project notifications"
+					style={{
+						position: 'relative',
+						border: '1px solid #dbeafe',
+						background: '#ffffff',
+						borderRadius: '999px',
+						padding: '8px 12px',
+						cursor: 'pointer',
+						fontSize: '1rem',
+						fontWeight: 700,
+						color: '#1d4ed8'
+					}}
+				>
+					🔔 Notifications
+					{count > 0 && (
+						<span
+							style={{
+								position: 'absolute',
+								top: '-6px',
+								right: '-6px',
+								minWidth: '20px',
+								height: '20px',
+								borderRadius: '999px',
+								background: '#ef4444',
+								color: '#fff',
+								fontSize: '0.75rem',
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0 6px'
+							}}
+						>
+							{count}
+						</span>
+					)}
+				</button>
+			</div>
+		);
+	};
+
+	const renderNotificationPanel = () => {
+		if (!showNotificationPanel) return null;
+
+		return (
+			<div
+				style={{
+					marginBottom: '20px',
+					padding: '14px',
+					borderRadius: '14px',
+					background: '#ffffff',
+					border: '1px solid #e5e7eb',
+					boxShadow: '0 10px 24px rgba(17, 24, 39, 0.08)'
+				}}
+			>
+				<div style={{ fontWeight: 700, color: '#1f2937', marginBottom: '12px' }}>
+					Voir recommandations par projet
+				</div>
+
+				{employeeNotifications.length === 0 && (
+					<div style={{ color: '#6b7280' }}>Aucune notification pour le moment.</div>
+				)}
+
+				{employeeNotifications.map((item, idx) => (
+					<div
+						key={`${item.projectId}-${idx}`}
+						style={{
+							border: '1px solid #e5e7eb',
+							borderRadius: '12px',
+							padding: '12px',
+							marginBottom: '10px',
+							background: item.assigned ? '#ecfdf5' : '#eff6ff'
+						}}
+					>
+						<div style={{ fontWeight: 700, color: '#111827' }}>{item.projectName}</div>
+						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
+							Manager: <strong>{item.managerName || '-'}</strong>
+						</div>
+						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
+							Type: {item.assigned ? 'Assignment' : 'Matching'}
+						</div>
+						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
+							Score: <strong>{formatNotificationScore(item.score)}</strong>
+						</div>
+						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
+							Missing skills: {(item.missingSkills || []).length > 0 ? item.missingSkills.join(', ') : 'None'}
+						</div>
+						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
+							Recommended courses:
+							<ul style={{ margin: '6px 0 0 18px' }}>
+								{(item.recommendedCourses || []).length > 0 ? (
+									item.recommendedCourses.map((course, cIdx) => <li key={`${item.projectId}-${cIdx}`}>{course}</li>)
+								) : (
+									<li>No recommendation</li>
+								)}
+							</ul>
+						</div>
+					</div>
+				))}
+			</div>
+		);
+	};
+
+	useEffect(() => {
+		if (activeSection === 'skills') {
+			const section = document.getElementById('skills');
+			if (section) {
+				section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}
+	}, [activeSection]);
 
 	function handleFiles(files) {
 		if (!files || files.length === 0) return;
@@ -173,7 +334,14 @@ export default function EmployeeProfile() {
 	}
 
 	async function uploadCv() {
-		if (!file || !profile?.id) return;
+		if (!file) {
+			alert("Veuillez sélectionner un CV avant de l'envoyer.");
+			return;
+		}
+		if (!profile?.id) {
+			alert("Profil introuvable. Veuillez vous reconnecter ou charger votre profil.");
+			return;
+		}
 		setUploading(true);
 		setProgress(0);
 		try {
@@ -298,6 +466,9 @@ export default function EmployeeProfile() {
 		setEditAiForm({
 			name: skill.name || '',
 			category: skill.category || '',
+			family: skill.family || '',
+			type: skill.type || '',
+			level: skill.level || '',
 			domain: skill.domain || '',
 			market_demand: skill.market_demand || 0,
 			experience: skill.experience || 0
@@ -306,7 +477,7 @@ export default function EmployeeProfile() {
 
 	function cancelEditingAiSkill() {
 		setEditingAiSkill(null);
-		setEditAiForm({name: '', category: '', domain: '', market_demand: 0, experience: 0});
+		setEditAiForm({name: '', category: '', family: '', type: '', level: '', domain: '', market_demand: 0, experience: 0});
 	}
 
 	function saveAiSkill(index) {
@@ -316,7 +487,7 @@ export default function EmployeeProfile() {
 				: s
 		));
 		setEditingAiSkill(null);
-		setEditAiForm({name: '', category: '', domain: '', market_demand: 0, experience: 0});
+		setEditAiForm({name: '', category: '', domain: '', family: '', type: '', market_demand: 0, experience: 0});
 	}
 
 	function deleteAiSkill(index) {
@@ -343,6 +514,11 @@ export default function EmployeeProfile() {
 			return levelOrder[b.level] - levelOrder[a.level];
 		})
 		.slice(0, 3);
+
+	const combinedSkills = Array.from(new Set([
+		...skills.map(skill => skill.name?.trim()).filter(Boolean),
+		...aiSkills.map(skill => (typeof skill === 'string' ? skill.trim() : skill.name?.trim())).filter(Boolean),
+	]));
 	
 	const getCategoryStats = () => {
 		const categories = {};
@@ -512,20 +688,228 @@ export default function EmployeeProfile() {
 		}));
 	}
 
-	return (
-		<div className="employee-profile">
-			{/* Header Section */}
-			<div className="profile-header-section">
-				<div className="avatar-circle">
-					{profile?.prenom?.[0]}{profile?.nom?.[0]}
+	// Photo management functions
+	function handlePhotoChange(e) {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		
+		if (file.size > 5 * 1024 * 1024) {
+			alert("La photo doit être moins de 5MB");
+			return;
+		}
+		
+		const reader = new FileReader();
+		reader.onloadend = () => {
+			setPhotoPreview(reader.result);
+			if (profile?.id) localStorage.setItem(`employeePhoto_${profile.id}`, reader.result);
+		};
+		reader.readAsDataURL(file);
+	}
+
+	// Photo is loaded in the profile useEffect above
+
+	// Get best skills (top 5)
+	const getBestSkills = () => {
+		return skills
+			.sort((a, b) => {
+				const levelOrder = { 'Expert': 4, 'Professional': 3, 'Intermediate': 2, 'Basic': 1 };
+				return (levelOrder[b.level] || 0) - (levelOrder[a.level] || 0);
+			})
+			.slice(0, 5);
+	};
+
+	if (activeSection === 'recommendations') {
+		return (
+			<div className="profile-with-sidebar">
+				<Sidebar
+					activeSection={activeSection}
+					onSectionChange={setActiveSection}
+					notificationsCount={employeeNotifications.length}
+					onOpenNotifications={() => setActiveSection('recommendations')}
+				/>
+				<div className="profile-layout" style={{ padding: 0, background: 'transparent' }}>
+					<EmployeeRecommendations notifications={employeeNotifications} />
 				</div>
-				<div className="profile-info">
-					<h1 className="profile-name">{profile ? `${profile.prenom} ${profile.nom}` : "Profil Employé"}</h1>
-					<p className="profile-position">{profile?.position || "Professionnel"}</p>
-					<div className="profile-meta">
-						<span className="meta-item">📧 {profile?.email}</span>
-						<span className="meta-item">📱 {profile?.phone || "Non fourni"}</span>
-						<span className="meta-item">🏢 {profile?.company || "Non spécifiée"}</span>
+			</div>
+		);
+	}
+
+	if (activeSection === 'overview') {
+		return (
+			<div className="profile-with-sidebar">
+				<Sidebar
+					activeSection={activeSection}
+					onSectionChange={setActiveSection}
+					notificationsCount={employeeNotifications.length}
+					onOpenNotifications={() => setActiveSection('recommendations')}
+				/>
+				<div className="profile-layout">
+					<Overview />
+				</div>
+			</div>
+		);
+	}
+
+	if (activeSection === 'dashboard') {
+		return (
+			<div className="profile-with-sidebar">
+				<Sidebar
+					activeSection={activeSection}
+					onSectionChange={setActiveSection}
+					notificationsCount={employeeNotifications.length}
+					onOpenNotifications={() => setActiveSection('recommendations')}
+				/>
+				<div className="profile-layout">
+					<Dashboardemploye skills={skills} aiSkills={aiSkills} />
+				</div>
+			</div>
+		);
+	}
+
+	if (activeSection === 'skills') {
+		return (
+			<div className="profile-with-sidebar">
+				<Sidebar
+					activeSection={activeSection}
+					onSectionChange={setActiveSection}
+					notificationsCount={employeeNotifications.length}
+					onOpenNotifications={() => setActiveSection('recommendations')}
+				/>
+				<div className="profile-layout">
+					<div className="employee-profile">
+						<SkillSection
+							sectionId="skills"
+							aiSkills={aiSkills}
+							editingAiSkill={editingAiSkill}
+							editAiForm={editAiForm}
+							onStartEditingAiSkill={startEditingAiSkill}
+							onCancelEditingAiSkill={cancelEditingAiSkill}
+							onSaveAiSkill={saveAiSkill}
+							onDeleteAiSkill={deleteAiSkill}
+							onAiEditInputChange={handleAiEditInputChange}
+						/>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (activeSection === 'career') {
+		return (
+			<div className="profile-with-sidebar">
+				<Sidebar
+					activeSection={activeSection}
+					onSectionChange={setActiveSection}
+					notificationsCount={employeeNotifications.length}
+					onOpenNotifications={() => setActiveSection('recommendations')}
+				/>
+				<div className="profile-layout">
+					<div className="employee-profile">
+						<CareerPage employeeSkills={combinedSkills} />
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (activeSection === 'resume') {
+		return (
+			<div className="profile-with-sidebar">
+				<Sidebar
+					activeSection={activeSection}
+					onSectionChange={setActiveSection}
+					notificationsCount={employeeNotifications.length}
+					onOpenNotifications={() => setActiveSection('recommendations')}
+				/>
+				<div className="profile-layout">
+					<div className="employee-profile">
+						<ResumePage
+							file={file}
+							dragActive={dragActive}
+							profile={profile}
+							uploading={uploading}
+							progress={progress}
+							fileInputRef={fileInputRef}
+							onDrag={onDrag}
+							onDrop={onDrop}
+							handleFiles={handleFiles}
+							uploadCv={uploadCv}
+							setFile={setFile}
+						/>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="profile-with-sidebar">
+			<Sidebar
+				activeSection={activeSection}
+				onSectionChange={setActiveSection}
+				notificationsCount={employeeNotifications.length}
+				onOpenNotifications={() => setActiveSection('recommendations')}
+			/>
+			<div className="profile-layout">
+				<div className="employee-profile">
+			{/* Enhanced Header Section */}
+			<div className="profile-header-section">
+				<div className="profile-header-container">
+					{/* Left: Photo and Basic Info */}
+					<div className="profile-header-left">
+						<div className="profile-photo-container">
+							{photoPreview ? (
+								<img src={photoPreview} alt="Profile" className="profile-photo" />
+							) : (
+								<div className="profile-photo placeholder">
+									<span className="photo-initials">{profile?.prenom?.[0]}{profile?.nom?.[0]}</span>
+								</div>
+							)}
+							<button 
+								className="photo-upload-btn"
+								onClick={() => photoInputRef.current?.click()}
+								title="Cliquez pour uploader une photo"
+							>
+								📷
+							</button>
+							<input
+								ref={photoInputRef}
+								type="file"
+								accept="image/jpeg,image/png,image/webp"
+								style={{ display: 'none' }}
+								onChange={handlePhotoChange}
+							/>
+						</div>
+						<div className="profile-basic-info">
+							<div className="info-row">
+								<label>Nom</label>
+								<span>{profile?.nom || "Non renseigné"}</span>
+							</div>
+							<div className="info-row">
+								<label>Prénom</label>
+								<span>{profile?.prenom || "Non renseigné"}</span>
+							</div>
+							<div className="info-row">
+								<label>Email</label>
+								<span>{profile?.email || "Non renseigné"}</span>
+							</div>
+							<div className="info-row">
+								<label>Téléphone</label>
+								<span>{profile?.phone || "Non renseigné"}</span>
+							</div>
+						</div>
+					</div>
+
+					{/* Right: Role and Details */}
+					<div className="profile-header-right">
+						<div className="profile-header-main">
+							<h1 className="profile-name">{profile ? `${profile.prenom} ${profile.nom}` : "Profil Employé"}</h1>
+							<div className="profile-role-badge">
+								<span className="role-icon">💼</span>
+								<span className="role-text">{profile?.position || "Professionnel"}</span>
+							</div>
+							<p className="profile-company">🏢 {profile?.company || "Entreprise non spécifiée"}</p>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -578,6 +962,69 @@ export default function EmployeeProfile() {
 					</div>
 				</div>
 			)}
+
+			{/* Best Skills Table Section */}
+			{getBestSkills().length > 0 && (
+				<div className="best-skills-section">
+					<div className="section-header">
+						<h2>🎯 Meilleures Compétences</h2>
+						<span className="best-skills-count">{getBestSkills().length} compétence{getBestSkills().length > 1 ? 's' : ''}</span>
+					</div>
+					<div className="best-skills-table-container">
+						<table className="best-skills-table">
+							<thead>
+								<tr>
+									<th className="col-rank">#</th>
+									<th className="col-skill">Compétence</th>
+									<th className="col-level">Niveau</th>
+									<th className="col-experience">Expérience</th>
+									<th className="col-proficiency">Maîtrise</th>
+								</tr>
+							</thead>
+							<tbody>
+								{getBestSkills().map((skill, idx) => {
+									const levelOrder = { 'Expert': 4, 'Professional': 3, 'Intermediate': 2, 'Basic': 1 };
+									const proficiency = ((levelOrder[skill.level] || 0) / 4) * 100;
+									return (
+										<tr key={skill.id} className={`skill-row level-${skill.level.toLowerCase()}`}>
+											<td className="col-rank">
+												<span className="rank-badge">
+													{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`}
+												</span>
+											</td>
+											<td className="col-skill">
+												<div className="skill-name-cell">
+													<span className="skill-name-text">{skill.name}</span>
+												</div>
+											</td>
+											<td className="col-level">
+												<span className={`level-badge level-${skill.level.toLowerCase()}`}>
+													{skill.level}
+												</span>
+											</td>
+											<td className="col-experience">
+												<span className="experience-badge">
+													{skill.experience} {skill.experience > 1 ? 'mois' : 'mois'}
+												</span>
+											</td>
+											<td className="col-proficiency">
+												<div className="proficiency-bar">
+													<div className="proficiency-fill" style={{width: `${proficiency}%`}}></div>
+												</div>
+												<span className="proficiency-text">{proficiency.toFixed(0)}%</span>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			)}
+
+			<div className="recommendation-section">
+				<CareerRecommendationForm employeeSkills={combinedSkills} />
+			</div>
 
 			{/* Profile Completion Bar */}
 			<div className="profile-completion-section">
@@ -709,46 +1156,6 @@ export default function EmployeeProfile() {
 
 				{/* Main Content */}
 				<div className="profile-main">
-					{/* CV Upload Section */}
-					<div className="cv-upload-section">
-						<h2>📄 Gestion du CV</h2>
-						<div className={`upload-zone ${dragActive ? 'active' : ''}`} onDragEnter={onDrag} onDragOver={onDrag} onDragLeave={onDrag} onDrop={onDrop}>
-							<input
-								ref={fileInputRef}
-								type="file"
-								accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-								style={{ display: 'none' }}
-								onChange={(e) => handleFiles(e.target.files)}
-							/>
-							{!file ? (
-								<div className="upload-content">
-									<div className="upload-icon">📤</div>
-									<h3>Déposez votre CV ici</h3>
-									<p>ou <button className="link-button" onClick={() => fileInputRef.current?.click()}>sélectionnez un fichier</button></p>
-									<small>PDF, Word • Max 10MB</small>
-								</div>
-							) : (
-								<div className="file-preview">
-									<div className="file-icon">📋</div>
-									<div className="file-info">
-										<p className="file-name">{file.name}</p>
-										<small>{(file.size/1024).toFixed(0)} KB</small>
-									</div>
-									<button className="remove-file" onClick={() => setFile(null)}>✕</button>
-								</div>
-							)}
-						</div>
-						{profile?.cvPath && !file && (
-							<div className="current-cv">
-								CV actuel: <a href={profile.cvPath} target="_blank" rel="noreferrer">Télécharger</a>
-							</div>
-						)}
-						<button className="primary-button upload-cv" onClick={uploadCv} disabled={!file || uploading}>
-							{uploading ? `⏳ Upload ${progress}% ...` : '⬆️ Envoyer le CV'}
-						</button>
-						{uploading && <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>}
-					</div>
-
 					{/* Category Stats Section */}
 					{aiSkills.length > 0 && Object.keys(getCategoryStats()).length > 0 && (
 						<div className="category-stats-section">
@@ -871,122 +1278,21 @@ export default function EmployeeProfile() {
 							</div>
 						)}
 					</div>
-
-					{/* AI Extracted Skills */}
-					{aiSkills.length > 0 && (
-						<div className="ai-skills-section">
-							<h2>🧠 Compétences Extraites par IA</h2>
-							<div className="ai-skills-table-container">
-								<table className="ai-skills-table">
-									<thead>
-										<tr>
-											<th>Compétence</th>
-											<th>Catégorie</th>
-											<th>Domaine</th>
-											<th>Demande Marché</th>
-											<th>Expérience</th>
-											<th>Actions</th>
-										</tr>
-									</thead>
-									<tbody>
-										{aiSkills.map((s, i) => (
-											<tr key={i}>
-												<td>
-													{editingAiSkill === i ? (
-														<input
-															type="text"
-															value={editAiForm.name}
-															name="name"
-															onChange={handleAiEditInputChange}
-															className="table-input"
-														/>
-													) : (
-														s.name
-													)}
-												</td>
-												<td>
-													{editingAiSkill === i ? (
-														<input
-															type="text"
-															value={editAiForm.category}
-															name="category"
-															onChange={handleAiEditInputChange}
-															className="table-input"
-														/>
-													) : (
-														s.category
-													)}
-												</td>
-												<td>
-													{editingAiSkill === i ? (
-														<input
-															type="text"
-															value={editAiForm.domain}
-															name="domain"
-															onChange={handleAiEditInputChange}
-															className="table-input"
-														/>
-													) : (
-														s.domain
-													)}
-												</td>
-												<td>
-													{editingAiSkill === i ? (
-														<input
-															type="number"
-															value={editAiForm.market_demand}
-															name="market_demand"
-															onChange={handleAiEditInputChange}
-															min="0"
-															max="1"
-															step="0.01"
-															className="table-input number-input"
-														/>
-													) : (
-														`${(s.market_demand * 100).toFixed(0)}%`
-													)}
-												</td>
-												<td>
-													{editingAiSkill === i ? (
-														<input
-															type="number"
-															value={editAiForm.experience}
-															name="experience"
-															onChange={handleAiEditInputChange}
-															min="0"
-															max="1200"
-															className="table-input number-input"
-														/>
-													) : (
-														s.experience ? `${s.experience} mois` : '0 mois'
-													)}
-												</td>
-												<td>
-													<div className="action-buttons">
-														{editingAiSkill === i ? (
-															<>
-																<button className="save-btn" onClick={() => saveAiSkill(i)}>✓</button>
-																<button className="cancel-btn" onClick={cancelEditingAiSkill}>✕</button>
-															</>
-														) : (
-															<>
-																<button className="edit-btn" onClick={() => startEditingAiSkill(s, i)}>✏️</button>
-																<button className="delete-btn" onClick={() => deleteAiSkill(i)}>🗑️</button>
-															</>
-														)}
-													</div>
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
-						</div>
-					)}
 				</div>
 			</div>
 
-			{/* Add Skill Modal */}
+			<SkillSection
+				sectionId="skills"
+				aiSkills={aiSkills}
+				editingAiSkill={editingAiSkill}
+				editAiForm={editAiForm}
+				onStartEditingAiSkill={startEditingAiSkill}
+				onCancelEditingAiSkill={cancelEditingAiSkill}
+				onSaveAiSkill={saveAiSkill}
+				onDeleteAiSkill={deleteAiSkill}
+				onAiEditInputChange={handleAiEditInputChange}
+			/>
+		{/* Add Skill Modal */}
 			{showSkillModal && (
 				<div className="modal-overlay">
 					<div className="modal-content">
@@ -1145,10 +1451,13 @@ export default function EmployeeProfile() {
 								</button>
 							</div>
 						</form>
+						</div>
 					</div>
-				</div>
-			)}
+				)}
+			</div>
 		</div>
+	</div>
 	);
+
 }
 

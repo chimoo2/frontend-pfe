@@ -1,52 +1,47 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Typography, Box, Button, Divider } from '@mui/material';
 import AddCardModal from './AddCardModal';
 import KanbanCard from './KanbanCard';
 
-export default function KanbanColumn({ name, color, cards = [], onAdd, onCardClick, hideAdd = false, isMatching = false }) {
+export default function KanbanColumn({ name, color, icon, cards = [], onAdd, onCardClick, hideAdd = false, isMatching = false }) {
   const [open, setOpen] = useState(false);
 
-  // slightly different appearance when used in matching context
-  const containerStyle = {
-    minWidth: 380,
-    maxWidth: 420,
-    flexShrink: 0,
-    backgroundColor: isMatching ? '#fafbff' : '#ffffff',
-    padding: 18,
-    borderRadius: 12,
-    boxShadow: isMatching ? '0 12px 40px rgba(15,23,42,0.1)' : '0 10px 30px rgba(15,23,42,0.05)'
-  };
-
   return (
-    <div style={containerStyle}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Box sx={{ height: 6, flex: 1, bgcolor: color, borderRadius: 8, mr: 1 }} />
-      </Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: 0.6 }}>{name}</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{cards.length}</Typography>
-        </Box>
-      </Box>
-      <Divider sx={{ mb: 1, borderColor: '#eef2f7' }} />
+    <div className={`kb-column ${isMatching ? 'kb-column-matching' : ''}`}>
+      {/* Column header */}
+      <div className="kb-col-header">
+        <div className="kb-col-title-row">
+          <span className="kb-col-icon">{icon || '📌'}</span>
+          <h3 className="kb-col-title">{name}</h3>
+          <span className="kb-col-count" style={{ background: `${color}15`, color }}>{cards.length}</span>
+        </div>
+        <div className="kb-col-bar" style={{ background: color }} />
+      </div>
+
+      {/* Add button */}
       {!hideAdd && (
-        <Button
-          variant="contained"
+        <button
+          className="kb-add-btn"
+          style={{ '--accent': color }}
           onClick={() => setOpen(true)}
-          sx={{ textTransform: 'none', bgcolor: color, '&:hover': { bgcolor: color }, width: '100%', mb: 1, borderRadius: 2 }}
         >
-          + Add New Task
-        </Button>
+          <svg width="14" height="14" fill="none" viewBox="0 0 14 14"><path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          Add New Task
+        </button>
       )}
-      <Box sx={{ minHeight: 160, display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+      {/* Cards */}
+      <div className="kb-col-cards">
         {cards.length === 0 ? (
-          <Box sx={{ p: 2, borderRadius: 1, bgcolor: '#fbfdff', textAlign: 'center', color: 'text.secondary' }}>Aucun projet</Box>
+          <div className="kb-empty">
+            <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><rect x="4" y="8" width="32" height="24" rx="4" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="4 3"/><path d="M14 18h12M14 22h8" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            <span>No projects yet</span>
+          </div>
         ) : (
           cards.map(c => (
-            <KanbanCard key={c.id} {...c} onClick={() => onCardClick && onCardClick(c)} />
+            <KanbanCard key={c.id} {...c} accentColor={color} onClick={() => onCardClick && onCardClick(c)} />
           ))
         )}
-      </Box>
+      </div>
 
       {!hideAdd && (
         <AddCardModal
@@ -55,7 +50,6 @@ export default function KanbanColumn({ name, color, cards = [], onAdd, onCardCli
           onSave={(card) => { onAdd(card); setOpen(false); }}
         />
       )}
-
     </div>
   );
 }

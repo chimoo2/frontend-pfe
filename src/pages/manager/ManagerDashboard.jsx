@@ -1,85 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Grid, Fab } from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
-import AlarmIcon from '@mui/icons-material/Alarm';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import StatCard from '../../components/dashboard/StatCard';
-import GrowthChart from '../../components/dashboard/GrowthChart';
-import PopularList from '../../components/dashboard/PopularList';
-import StatusDonut from '../../components/dashboard/StatusDonut';
-import { Button } from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
+import Chart from 'react-apexcharts';
 import { getProjectsByManager } from '../../api/projectApi';
 import { useAuth } from '../../context/AuthContext';
-// removed date-fns to avoid missing dependency; use native Date for simple formatting
+import { useNavigate } from 'react-router-dom';
+import './ManagerDashboard.css';
 
 export default function ManagerDashboard() {
-  // project state and statistics
   const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({ total: 0, todo: 0, inprogress: 0, completed: 0, overdue: 0, dueSoon: 0 });
   const [monthlySeries, setMonthlySeries] = useState([]);
   const [topSkills, setTopSkills] = useState([]);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
       if (!user?.email) return;
-
       try {
         const list = await getProjectsByManager(user.email);
         setProjects(list);
-        // compute counts
         const today = new Date();
         const counts = { total: list.length, todo: 0, inprogress: 0, completed: 0, overdue: 0, dueSoon: 0 };
-        const monthly = {}; // key=month, value=count
+        const monthly = {};
         list.forEach(p => {
           const st = (p.status || '').toLowerCase();
           if (st.includes('progress')) counts.inprogress++;
           else if (st.includes('complete') || st.includes('done')) counts.completed++;
           else counts.todo++;
-
-          // deadlines
           if (p.endDate) {
             const end = new Date(p.endDate);
-            if (end < today && !st.includes('complete')) {
-              counts.overdue++;
-            } else if (end >= today && end <= new Date(today.getTime() + 30*24*60*60*1000)) {
-              counts.dueSoon++;
-            }
+            if (end < today && !st.includes('complete')) counts.overdue++;
+            else if (end >= today && end <= new Date(today.getTime() + 30*24*60*60*1000)) counts.dueSoon++;
           }
-
           if (p.startDate) {
-            const monthIndex = new Date(p.startDate).getMonth();
-            monthly[monthIndex] = (monthly[monthIndex] || 0) + 1;
+            const mi = new Date(p.startDate).getMonth();
+            monthly[mi] = (monthly[mi] || 0) + 1;
           }
         });
-
-        // compute top skills used across projects
         const skillCounts = {};
         list.forEach(p => {
           (p.requiredSkills || []).forEach(s => {
-            const skillName = s.skillName || s.skill || 'Inconnu';
-            skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
+            const n = s.skillName || s.skill || 'Unknown';
+            skillCounts[n] = (skillCounts[n] || 0) + 1;
           });
         });
-        const topSkills = Object.entries(skillCounts)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 4)
-          .map(([name, count]) => ({
-            name,
-            value: `${count} fois`,
-            note: `${count} demande${count > 1 ? 's' : ''}`,
-            positive: true
-          }));
-
+        const ts = Object.entries(skillCounts).sort((a,b) => b[1]-a[1]).slice(0,5)
+          .map(([name, count]) => ({ name, count }));
         setStats(counts);
-        // build series ordered by months (fr-FR short month names)
-        const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-        setMonthlySeries([{ name: 'Projets', data: monthNames.map((_, index) => monthly[index] || 0) }]);
-        setTopSkills(topSkills);
+        const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        setMonthlySeries([{ name: 'Projects', data: mNames.map((_,i) => monthly[i] || 0) }]);
+        setTopSkills(ts);
       } catch (e) {
         console.error('Failed loading projects for dashboard', e);
       }
@@ -87,97 +57,243 @@ export default function ManagerDashboard() {
     load();
   }, [user?.email]);
 
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+
+  // Donut chart config
+  const donutOptions = {
+    chart: { type: 'donut', toolbar: { show: false }, fontFamily: 'Inter, system-ui, sans-serif' },
+    labels: ['To Do', 'In Progress', 'Completed'],
+    legend: { position: 'bottom', fontSize: '13px', fontWeight: 600, markers: { width: 10, height: 10, radius: 3 } },
+    colors: ['#818cf8', '#f59e0b', '#10b981'],
+    stroke: { width: 3, colors: ['#fff'] },
+    dataLabels: { enabled: true, style: { fontSize: '12px', fontWeight: 700 }, dropShadow: { enabled: false } },
+    plotOptions: { pie: { donut: { size: '70%', labels: { show: true, total: { show: true, label: 'Total', fontSize: '14px', fontWeight: 700, color: '#334155', formatter: () => stats.total } } } } },
+    tooltip: { theme: 'light' },
+  };
+
+  // Bar chart config
+  const barOptions = {
+    chart: { stacked: false, toolbar: { show: false }, fontFamily: 'Inter, system-ui, sans-serif', animations: { enabled: true, speed: 600 } },
+    plotOptions: { bar: { columnWidth: '50%', borderRadius: 6, borderRadiusApplication: 'end' } },
+    colors: ['#6366f1'],
+    xaxis: { categories: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], labels: { style: { colors: '#94a3b8', fontSize: '11px', fontWeight: 500 } } },
+    yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px', fontWeight: 500 } } },
+    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, xaxis: { lines: { show: false } } },
+    legend: { show: false },
+    dataLabels: { enabled: false },
+    tooltip: { theme: 'light', style: { fontSize: '12px' } },
+  };
+
+  // Sparkline config
+  const sparkOptions = {
+    chart: { sparkline: { enabled: true }, animations: { enabled: true } },
+    stroke: { curve: 'smooth', width: 2.5 },
+    colors: ['#6366f1'],
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05 } },
+    tooltip: { enabled: false },
+  };
+  const sparkSeries = [{ name: 'trend', data: monthlySeries[0]?.data || [0,0,0,0,0,0,0,0,0,0,0,0] }];
+
+  // Recent projects (last 5)
+  const recentProjects = [...projects]
+    .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0))
+    .slice(0, 5);
+
+  const getStatusClass = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s.includes('progress')) return 'md-status-progress';
+    if (s.includes('complete') || s.includes('done')) return 'md-status-done';
+    return 'md-status-todo';
+  };
+
+  const getStatusLabel = (status) => {
+    const s = (status || '').toLowerCase();
+    if (s.includes('progress')) return 'In Progress';
+    if (s.includes('complete') || s.includes('done')) return 'Completed';
+    return 'To Do';
+  };
+
   return (
-    <Box sx={{ bgcolor: '#f4f7fb', minHeight: '100vh', position: 'relative' }}>
-      <Box sx={{ p: 3, maxWidth: '1200px', mx: 'auto', mt: 2 }}>
-        {/* header section with greeting and quick actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2, p: 3, bgcolor: '#ffffff', borderRadius: '20px', boxShadow: '0 8px 24px rgba(15,23,42,0.06)' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <AccountBalanceWalletIcon sx={{ fontSize: 48, color: '#7c3aed' }} />
-            <div>
-              <h2 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.6px' }}>
-                Bonjour, {user?.prenom || user?.nom || 'Manager'}
-              </h2>
-              <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500 }}>Bienvenue sur votre tableau de bord professionnel - surveillez vos indicateurs clés et prenez des décisions éclairées.</div>
+    <div className="md-dashboard">
+      {/* ===== Welcome Banner ===== */}
+      <div className="md-welcome">
+        <div className="md-welcome-bg" />
+        <div className="md-welcome-content">
+          <div className="md-welcome-left">
+            <div className="md-welcome-avatar">
+              {(user?.prenom?.[0] || user?.nom?.[0] || 'M').toUpperCase()}
             </div>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="contained" startIcon={<DownloadIcon />} sx={{ bgcolor: '#2563eb', '&:hover': { bgcolor: '#1d4ed8' }, borderRadius: '10px', fontWeight: 700, textTransform: 'none', boxShadow: '0 8px 16px rgba(37,99,235,0.12)' }}>
-              Télécharger rapport
-            </Button>
-            <Button variant="outlined" startIcon={<AccountBalanceWalletIcon />} sx={{ borderRadius: '10px', fontWeight: 700, textTransform: 'none' }}>
-              Nouveau projet
-            </Button>
-          </Box>
-        </Box>
+            <div className="md-welcome-text">
+              <h1>Welcome back, {user?.prenom || user?.nom || 'Manager'}</h1>
+              <p>{dateStr}</p>
+            </div>
+          </div>
+          <div className="md-welcome-right">
+            <button className="md-btn md-btn-primary" onClick={() => navigate('/manager/projects/new')}>
+              <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+              New Project
+            </button>
+            <button className="md-btn md-btn-glass" onClick={() => navigate('/manager/projects')}>
+              <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M2 3h12M2 8h12M2 13h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              View All
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <Grid container spacing={2} alignItems="stretch">
-          {/* KPI cards */}
-          <Grid item xs={12} md={3}>
-            <StatCard
-              title="Projets totaux"
-              value={stats.total}
-              subtitle="depuis toujours"
-              icon={AccountBalanceWalletIcon}
-              sx={{ background: 'linear-gradient(90deg,#6d28d9,#8b5cf6)', color: '#fff', boxShadow: '0 12px 34px rgba(13,49,133,0.08)' }}
-            />
-          </Grid>
+      {/* ===== Stat Cards ===== */}
+      <div className="md-stats-grid">
+        <div className="md-stat-card md-stat-purple">
+          <div className="md-stat-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M3 7a4 4 0 014-4h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7z" stroke="currentColor" strokeWidth="1.8"/><path d="M8 12h8M8 8h5M8 16h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+          </div>
+          <div className="md-stat-info">
+            <span className="md-stat-label">Total Projects</span>
+            <span className="md-stat-value">{stats.total}</span>
+          </div>
+          <div className="md-stat-sparkline">
+            <Chart options={sparkOptions} series={sparkSeries} type="area" width={80} height={36} />
+          </div>
+        </div>
 
-          <Grid item xs={12} md={3}>
-            <StatCard
-              title="En cours"
-              value={stats.inprogress}
-              subtitle="maintenant"
-              icon={ShoppingBagIcon}
-              sx={{ background: 'linear-gradient(90deg,#0284c7,#60a5fa)', color: '#fff', boxShadow: '0 12px 34px rgba(3,105,161,0.06)' }}
-            />
-          </Grid>
+        <div className="md-stat-card md-stat-blue">
+          <div className="md-stat-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/><path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <div className="md-stat-info">
+            <span className="md-stat-label">In Progress</span>
+            <span className="md-stat-value">{stats.inprogress}</span>
+          </div>
+          <div className="md-stat-badge">Active</div>
+        </div>
 
-          <Grid item xs={12} md={3}>
-            <StatCard
-              title="Terminés"
-              value={stats.completed}
-              icon={MonetizationOnIcon}
-              sx={{ boxShadow: '0 8px 20px rgba(16,24,40,0.04)', bgcolor: '#ffffff' }}
-            />
-          </Grid>
+        <div className="md-stat-card md-stat-green">
+          <div className="md-stat-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8"/></svg>
+          </div>
+          <div className="md-stat-info">
+            <span className="md-stat-label">Completed</span>
+            <span className="md-stat-value">{stats.completed}</span>
+          </div>
+          <div className="md-stat-percent">{completionRate}%</div>
+        </div>
 
-          <Grid item xs={12} md={3}>
-            <StatCard
-              title="En retard"
-              value={stats.overdue}
-              subtitle="dates dépassées"
-              icon={AlarmIcon}
-              sx={{ background: 'linear-gradient(90deg,#dc2626,#f87171)', color: '#fff', boxShadow: '0 12px 34px rgba(220,38,38,0.1)' }}
-            />
-          </Grid>
+        <div className="md-stat-card md-stat-red">
+          <div className="md-stat-icon">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+          </div>
+          <div className="md-stat-info">
+            <span className="md-stat-label">Overdue</span>
+            <span className="md-stat-value">{stats.overdue}</span>
+          </div>
+          {stats.dueSoon > 0 && <div className="md-stat-warn">{stats.dueSoon} due soon</div>}
+        </div>
+      </div>
 
-          <Grid item xs={12} md={4}>
-            <StatusDonut data={stats} />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <GrowthChart
-              title="Projets démarrés par mois"
-              value={`${stats.total} totaux`}
-              categories={['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc']}
-              series={monthlySeries}
-              legendItems={[{ name: 'Projets', color: '#7c3aed' }]}
-            />
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <PopularList title="Compétences les plus demandées" items={topSkills} />
-          </Grid>
+      {/* ===== Charts Row ===== */}
+      <div className="md-charts-grid">
+        {/* Donut Chart */}
+        <div className="md-card md-card-donut">
+          <div className="md-card-header">
+            <div>
+              <h3>Project Status</h3>
+              <p>Distribution overview</p>
+            </div>
+          </div>
+          <div className="md-card-body md-donut-wrapper">
+            <Chart options={donutOptions} series={[stats.todo, stats.inprogress, stats.completed]} type="donut" height={280} />
+          </div>
+        </div>
 
-        </Grid>
+        {/* Bar Chart */}
+        <div className="md-card md-card-bar">
+          <div className="md-card-header">
+            <div>
+              <h3>Monthly Activity</h3>
+              <p>Projects started per month</p>
+            </div>
+            <span className="md-card-tag">{stats.total} total</span>
+          </div>
+          <div className="md-card-body">
+            <Chart options={barOptions} series={monthlySeries} type="bar" height={280} />
+          </div>
+        </div>
+      </div>
 
-        {/* explanatory footer text */}
-        <Box sx={{ mt: 4, textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>
-          <em>Les données sont mises à jour automatiquement à partir de vos projets. Cliquez sur « Nouveau projet » pour démarrer.</em>
-        </Box>
-      </Box>
-      <Fab color="primary" sx={{ position: 'fixed', right: 28, bottom: 84, bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, boxShadow: '0 12px 30px rgba(124,58,237,0.18)' }} aria-label="settings">
-        <SettingsIcon />
-      </Fab>
-    </Box>
+      {/* ===== Bottom Row ===== */}
+      <div className="md-bottom-grid">
+        {/* Top Skills */}
+        <div className="md-card md-card-skills">
+          <div className="md-card-header">
+            <div>
+              <h3>Top Skills Demanded</h3>
+              <p>Most requested across projects</p>
+            </div>
+          </div>
+          <div className="md-card-body">
+            {topSkills.length === 0 ? (
+              <div className="md-empty-mini">No skill data yet</div>
+            ) : (
+              <div className="md-skills-list">
+                {topSkills.map((skill, i) => {
+                  const maxCount = topSkills[0]?.count || 1;
+                  const pct = Math.round((skill.count / maxCount) * 100);
+                  return (
+                    <div key={i} className="md-skill-item">
+                      <div className="md-skill-rank">#{i + 1}</div>
+                      <div className="md-skill-detail">
+                        <div className="md-skill-name-row">
+                          <span className="md-skill-name">{skill.name}</span>
+                          <span className="md-skill-count">{skill.count} project{skill.count > 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="md-skill-bar-bg">
+                          <div className="md-skill-bar-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Projects */}
+        <div className="md-card md-card-recent">
+          <div className="md-card-header">
+            <div>
+              <h3>Recent Projects</h3>
+              <p>Latest activity</p>
+            </div>
+            <button className="md-link-btn" onClick={() => navigate('/manager/projects')}>See all →</button>
+          </div>
+          <div className="md-card-body md-card-body-flush">
+            {recentProjects.length === 0 ? (
+              <div className="md-empty-mini">No projects yet. Create your first one!</div>
+            ) : (
+              <div className="md-recent-list">
+                {recentProjects.map((p, i) => (
+                  <div key={p.id || i} className="md-recent-item">
+                    <div className="md-recent-color" />
+                    <div className="md-recent-info">
+                      <span className="md-recent-name">{p.name || p.titre || 'Untitled'}</span>
+                      <span className="md-recent-date">
+                        {p.startDate ? new Date(p.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                      </span>
+                    </div>
+                    <span className={`md-recent-status ${getStatusClass(p.status)}`}>
+                      {getStatusLabel(p.status)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

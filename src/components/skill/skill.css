@@ -1,0 +1,275 @@
+/* ============================================
+   Skill Section – Premium UI  (sk-*)
+   ============================================ */
+
+/* ---------- Section container ---------- */
+.sk-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.25rem 4rem;
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+/* ---------- Banner ---------- */
+.sk-banner {
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #0ea5e9 100%);
+  padding: 2.5rem 2rem 2rem;
+  margin: 0 -1.25rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+.sk-banner-dots {
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='20' cy='20' r='1' fill='rgba(255,255,255,0.07)'/%3E%3C/svg%3E");
+  background-size: 24px 24px;
+}
+.sk-banner-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.sk-title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.sk-subtitle {
+  margin: 0.35rem 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.95rem;
+  max-width: 500px;
+  line-height: 1.5;
+}
+.sk-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ---------- Empty state ---------- */
+.sk-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(30, 64, 175, 0.04);
+}
+.sk-empty svg { margin-bottom: 1rem; }
+.sk-empty h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+.sk-empty p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  max-width: 340px;
+  margin-inline: auto;
+  line-height: 1.6;
+}
+
+/* ---------- Table wrapper ---------- */
+.sk-table-wrap {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 32px rgba(30, 64, 175, 0.06);
+}
+.sk-table-wrap::-webkit-scrollbar { height: 6px; }
+.sk-table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ---------- Table ---------- */
+.sk-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 840px;
+  font-size: 0.9rem;
+}
+
+/* Header row */
+.sk-table thead tr {
+  background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 100%);
+}
+.sk-table th {
+  padding: 0.95rem 1rem;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-bottom: none;
+}
+.sk-th-num { width: 40px; text-align: center; }
+.sk-th-icon { margin-right: 4px; }
+
+/* Body rows */
+.sk-table tbody tr {
+  transition: background 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sk-table tbody tr:last-child { border-bottom: none; }
+.sk-table tbody tr:hover { background: #f8faff; }
+.sk-table tbody tr.sk-row-editing { background: #eff6ff; }
+
+.sk-table td {
+  padding: 0.85rem 1rem;
+  color: #334155;
+  vertical-align: middle;
+}
+.sk-cell-num {
+  text-align: center;
+  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+.sk-cell-text {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Level badge ---------- */
+.sk-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sk-level-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ---------- Experience ---------- */
+.sk-exp {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* ---------- Inputs (edit mode) ---------- */
+.sk-input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.86rem;
+  color: #1e293b;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.sk-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.sk-input-num { max-width: 80px; }
+.sk-select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+/* ---------- Action buttons ---------- */
+.sk-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.sk-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.sk-btn:hover { transform: scale(1.12); }
+.sk-btn:active { transform: scale(0.96); }
+
+.sk-btn-edit {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.sk-btn-edit:hover {
+  background: #dbeafe;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.18);
+}
+
+.sk-btn-delete {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.sk-btn-delete:hover {
+  background: #fee2e2;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.18);
+}
+
+.sk-btn-save {
+  background: #ecfdf5;
+  color: #059669;
+}
+.sk-btn-save:hover {
+  background: #d1fae5;
+  box-shadow: 0 3px 10px rgba(5, 150, 105, 0.18);
+}
+
+.sk-btn-cancel {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.sk-btn-cancel:hover {
+  background: #e2e8f0;
+  box-shadow: 0 3px 10px rgba(100, 116, 139, 0.15);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .sk-banner { padding: 1.8rem 1.2rem 1.4rem; margin: 0 -1.25rem 1.5rem; }
+  .sk-banner-content { flex-direction: column; align-items: flex-start; }
+  .sk-table { font-size: 0.82rem; }
+  .sk-table th, .sk-table td { padding: 0.7rem 0.6rem; }
+}
+@media (max-width: 480px) {
+  .sk-section { padding: 0 0.75rem 3rem; }
+  .sk-banner { margin: 0 -0.75rem 1.2rem; border-radius: 0 0 16px 16px; }
+  .sk-title { font-size: 1.3rem; }
+}

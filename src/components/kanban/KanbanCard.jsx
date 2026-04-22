@@ -1,68 +1,67 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, Avatar, Chip } from '@mui/material';
 
-export default function KanbanCard({ title, name, label, status, description, skillsNeeded = [], categoryRequirements = [], avatars = [], comments, onClick, isMatching = false }) {
+export default function KanbanCard({ title, name, label, status, description, skillsNeeded = [], categoryRequirements = [], startDate, duration, onClick, accentColor }) {
   const displayTitle = title || name;
   const displayLabel = label || status;
-  // build a brief skills string (max 3)
-  const skillsText = skillsNeeded && skillsNeeded.length
-    ? skillsNeeded.slice(0,3).map(s=>s.skill || s.skillName || s).join(', ') + (skillsNeeded.length>3?` (+${skillsNeeded.length-3})`:'')
-    : null;
-  const catsText = categoryRequirements && categoryRequirements.length
-    ? `${categoryRequirements.length} cat.`
-    : null;
+
+  const skillsArr = skillsNeeded.slice(0, 3).map(s => s.skill || s.skillName || s);
+  const extraSkills = skillsNeeded.length > 3 ? skillsNeeded.length - 3 : 0;
+
+  const getStatusClass = () => {
+    const s = (status || '').toLowerCase();
+    if (s.includes('progress')) return 'kc-badge-amber';
+    if (s.includes('complete') || s.includes('done')) return 'kc-badge-green';
+    return 'kc-badge-indigo';
+  };
+
   return (
-    <Card
-      onClick={onClick}
-      sx={{
-        mb: 2,
-        borderRadius: 2,
-        overflow: 'hidden',
-        boxShadow: isMatching ? '0 8px 24px rgba(76,29,149,0.15)' : '0 6px 18px rgba(15,23,42,0.06)',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: 'transform 180ms ease, box-shadow 180ms ease',
-        '&:hover': onClick ? { transform: 'translateY(-6px)', boxShadow: isMatching ? '0 14px 36px rgba(76,29,149,0.2)' : '0 12px 30px rgba(15,23,42,0.12)' } : {}
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
-        <Box sx={{ width: 6, bgcolor: isMatching ? '#8b5cf6' : (status ? (status==='Completed'? '#10b981' : status==='In Progress'? '#f59e0b' : '#6366f1') : '#6b7280') }} />
-        <CardContent sx={{ p: 2, position: 'relative', width: '100%' }}>
+    <div className="kc-card" onClick={onClick} style={{ '--accent': accentColor || '#6366f1' }}>
+      <div className="kc-card-accent" />
+      <div className="kc-card-body">
+        {/* Header row */}
+        <div className="kc-card-top">
+          <h4 className="kc-card-title">{displayTitle}</h4>
           {displayLabel && (
-            <Chip label={displayLabel} size="small" sx={{ position: 'absolute', top: 10, right: 10, bgcolor: '#f3f4f6', fontWeight: 600 }} />
+            <span className={`kc-badge ${getStatusClass()}`}>{displayLabel}</span>
           )}
-          <Typography variant="body1" sx={{ mt: displayLabel ? 1.5 : 0, fontWeight: 700, fontSize: '15px', color: '#0f172a' }}>
-            {displayTitle}
-          </Typography>
-          {description && (
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1, lineHeight: 1.4, maxHeight: 48, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {description}
-            </Typography>
-          )}
-          {skillsText && (
-            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
-              Skills: {skillsText}
-            </Typography>
-          )}
-          {catsText && (
-            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-              {catsText}
-            </Typography>
-          )}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {avatars.slice(0,3).map((a,i)=>(
-                <Avatar key={i} sx={{ width: 28, height: 28, fontSize: '12px', ml: i===0?0:-0.5 }}>{a}</Avatar>
-              ))}
-              {avatars.length>3 && (
-                <Avatar sx={{ width:28,height:28,fontSize:'12px',ml:-0.5,bgcolor:'#e5e7eb'}}>+{avatars.length-3}</Avatar>
-              )}
-            </Box>
-            {typeof comments === 'number' && (
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>{comments}</Typography>
+        </div>
+
+        {/* Description */}
+        {description && (
+          <p className="kc-card-desc">{description}</p>
+        )}
+
+        {/* Skills tags */}
+        {skillsArr.length > 0 && (
+          <div className="kc-skills">
+            {skillsArr.map((s, i) => (
+              <span key={i} className="kc-skill-tag">{s}</span>
+            ))}
+            {extraSkills > 0 && <span className="kc-skill-tag kc-skill-more">+{extraSkills}</span>}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="kc-card-footer">
+          <div className="kc-meta">
+            {startDate && (
+              <span className="kc-meta-item">
+                <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><rect x="1" y="2" width="10" height="9" rx="2" stroke="currentColor" strokeWidth="1.2"/><path d="M1 5h10M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                {new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
             )}
-          </Box>
-        </CardContent>
-      </Box>
-    </Card>
+            {duration && (
+              <span className="kc-meta-item">
+                <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2"/><path d="M6 3.5V6l2 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {duration}
+              </span>
+            )}
+          </div>
+          {categoryRequirements.length > 0 && (
+            <span className="kc-cat-count">{categoryRequirements.length} cat.</span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
