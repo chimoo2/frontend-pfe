@@ -1,74 +1,107 @@
-/* Unified Sidebar - Same design for Manager and Admin */
+﻿/* Unified Sidebar - Same design for Manager and Admin */
 
-/* Sidebar Toggle Button - Right of sidebar (smaller, refined) */
+/* Sidebar Toggle Button - visible floating pill */
 .sidebar-toggle {
   position: fixed;
-  top: calc(72px + 1.25rem);
-  /* sit just to the right of the open sidebar (sidebar width 280px) */
-  left: calc(280px + 10px);
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, rgba(111,115,249,0.96) 0%, rgba(168,107,255,0.96) 100%);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 50%;
+  top: 98px;
+  left: calc(280px - 66px);
+  min-width: 122px;
+  height: 50px;
+  padding: 0 14px 0 10px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 18px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 105;
-  transition: left 0.36s cubic-bezier(0.22,1,0.36,1), transform 0.22s, box-shadow 0.22s, opacity 0.2s;
-  box-shadow: 0 6px 18px rgba(99,102,241,0.12);
-  backdrop-filter: blur(5px);
+  transition: left 0.36s cubic-bezier(0.22,1,0.36,1), transform 0.22s, box-shadow 0.22s, background 0.22s;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18), 0 6px 14px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-/* Decorative neon ring */
-.sidebar-toggle::before {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(123,102,255,0.18), transparent 30%), radial-gradient(circle at 70% 70%, rgba(99,102,241,0.12), transparent 30%);
-  filter: blur(6px);
-  opacity: 0.6;
-  transition: opacity 0.3s, transform 0.3s;
-  pointer-events: none;
+.sidebar-toggle.open {
+  left: calc(280px - 66px);
 }
 
-.sidebar-toggle::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 18px rgba(99,102,241,0.06);
-  pointer-events: none;
+.sidebar-toggle.closed {
+  left: 14px;
 }
 
 .sidebar-toggle:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 14px 34px rgba(99,102,241,0.18), 0 0 44px rgba(168,107,255,0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.22), 0 8px 18px rgba(99, 102, 241, 0.14);
 }
 
-.sidebar-toggle:active { transform: translateY(-1px) scale(0.98); }
+.sidebar-toggle:active {
+  transform: translateY(0);
+}
 
-/* When sidebar is closed, bring the toggle close to viewport edge */
-.sidebar-toggle.closed { left: 8px; border-radius: 12px; }
+.sidebar-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.16), 0 18px 38px rgba(15, 23, 42, 0.18);
+}
 
-/* SVG toggle icon styles (polished) */
-.toggle-icon { display: block; width: 18px; height: 14px; }
-.toggle-icon rect { fill: #ffffff; transition: transform 0.34s cubic-bezier(0.22,1,0.36,1), opacity 0.22s, fill 0.25s; transform-origin: 9px 7px; }
+.sidebar-toggle-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
 
-/* open state (menu visible): small subtle offset for charm */
-.sidebar-toggle.open .r1 { transform: translateY(0); }
-.sidebar-toggle.open .r2 { transform: translateY(0); opacity: 1; }
-.sidebar-toggle.open .r3 { transform: translateY(0); }
+.sidebar-toggle-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.28);
+}
 
-/* closed state -> morph to X */
-.sidebar-toggle.closed .r1 { transform: translateY(6px) rotate(45deg); }
-.sidebar-toggle.closed .r2 { opacity: 0; transform: scaleX(0.45); }
-.sidebar-toggle.closed .r3 { transform: translateY(-6px) rotate(-45deg); }
+.toggle-chevron {
+  display: block;
+  width: 16px;
+  height: 16px;
+  color: #ffffff;
+}
 
-/* subtle focus ring for accessibility */
-.sidebar-toggle:focus { outline: none; box-shadow: 0 0 0 4px rgba(111,115,249,0.12); }
+.toggle-chevron path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sidebar-toggle-title {
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.sidebar-toggle-subtitle {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 
 .sidebar {
   width: 280px;
@@ -303,4 +336,20 @@
 .logout .sidebar-link:hover {
   background: rgba(239, 68, 68, 0.1);
   color: rgba(239, 68, 68, 0.95);
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    top: 92px;
+    min-width: 114px;
+    height: 46px;
+  }
+
+  .sidebar-toggle.open {
+    left: calc(280px - 72px);
+  }
+
+  .sidebar-toggle.closed {
+    left: 12px;
+  }
 }

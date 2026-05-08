@@ -86,17 +86,28 @@ export default function Sidebar({
 
       {/* Toggle Button - Always visible on the right */}
       <button
+        type="button"
         className={`sidebar-toggle ${isOpen ? "open" : "closed"}`}
         onClick={toggleSidebar}
-        aria-label="Toggle sidebar"
+        aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
         aria-expanded={isOpen}
         title={isOpen ? "Close menu" : "Open menu"}
       >
-        <svg className="toggle-icon" width="18" height="14" viewBox="0 0 18 14" aria-hidden="true">
-          <rect className="r1" x="0" y="0" width="18" height="2" rx="1" />
-          <rect className="r2" x="0" y="6" width="18" height="2" rx="1" />
-          <rect className="r3" x="0" y="12" width="18" height="2" rx="1" />
-        </svg>
+        <span className="sidebar-toggle-inner">
+          <span className="sidebar-toggle-icon" aria-hidden="true">
+            <svg className="toggle-chevron" width="16" height="16" viewBox="0 0 16 16">
+              {isOpen ? (
+                <path d="M10.5 3.5L6 8l4.5 4.5" />
+              ) : (
+                <path d="M5.5 3.5L10 8l-4.5 4.5" />
+              )}
+            </svg>
+          </span>
+          <span className="sidebar-toggle-copy">
+            <span className="sidebar-toggle-title">{isOpen ? "Hide" : "Open"}</span>
+            <span className="sidebar-toggle-subtitle">menu</span>
+          </span>
+        </span>
       </button>
     </>
   );

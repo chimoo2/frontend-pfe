@@ -135,34 +135,10 @@ export default function Matching({ projectIdProp, embedded }) {
   };
 
   // Compute a stable overall score from detailed per-skill scores when available.
-  // This avoids displaying inflated top-level values from inconsistent backend payloads.
+  // Display the overall_score computed by the backend:
+  // overall = unified_skill_score × 0.60 + experience_score × 0.25 + criticality_score × 0.15
   const computeOverallScoreRaw = (match) => {
-    const explanationScores = match?.skill_match_explanation?.individual_skill_scores;
-    if (explanationScores && typeof explanationScores === 'object') {
-      const vals = Object.values(explanationScores)
-        .map(v => Number(v))
-        .filter(v => !Number.isNaN(v));
-      if (vals.length > 0) {
-        return vals.reduce((a, b) => a + b, 0) / vals.length;
-      }
-    }
-
-    if (Array.isArray(match?.matched_requirements) && match.matched_requirements.length > 0) {
-      const vals = match.matched_requirements
-        .filter(req => !!(req?.requirement || {}).skill_name)
-        .map(req => {
-          const details = req?.match_details || {};
-          const n = Number(details.req_score ?? details.overall_skill_score);
-          return Number.isNaN(n) ? null : n;
-        })
-        .filter(v => v != null);
-
-      if (vals.length > 0) {
-        return vals.reduce((a, b) => a + b, 0) / vals.length;
-      }
-    }
-
-    return match?.overall_score ?? match?.skill_match_score ?? match?.matchingScore;
+    return match?.overall_score ?? match?.skill_match_score ?? match?.matchingScore ?? 0;
   };
 
   const viewTrainingPage = (match, missingSkillsForTraining) => {

@@ -760,7 +760,7 @@ export default function EmployeeProfile() {
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout">
-					<Dashboardemploye skills={skills} aiSkills={aiSkills} />
+					<Dashboardemploye skills={skills} aiSkills={aiSkills} notifications={employeeNotifications} />
 				</div>
 			</div>
 		);

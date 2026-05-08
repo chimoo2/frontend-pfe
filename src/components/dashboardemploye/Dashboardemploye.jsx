@@ -50,17 +50,19 @@ const BAR_COLORS = [
     'linear-gradient(90deg, #f59e0b, #fcd34d)',
 ];
 
-export default function Dashboardemploye({ skills: propSkills, aiSkills: propAiSkills }) {
+export default function Dashboardemploye({ skills: propSkills, aiSkills: propAiSkills, notifications: propNotifications }) {
     const { user } = useAuth();
     const [skills, setSkills] = useState([]);
     const [aiSkills, setAiSkills] = useState([]);
     const [stats, setStats] = useState({ family: {}, category: {}, type: {}, domain: {} });
     const [summary, setSummary] = useState({ totalSkills: 0, uniqueFamilies: 0, uniqueCategories: 0, uniqueTypes: 0, uniqueDomains: 0 });
+    const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
         // Use props if provided, otherwise fall back to localStorage (scoped by user)
         const currentSkills = propSkills !== undefined ? propSkills : getStoredSkills(user?.id);
         const currentAiSkills = propAiSkills !== undefined ? propAiSkills : getStoredAiSkills(user?.id);
+        if (propNotifications !== undefined) setNotifications(Array.isArray(propNotifications) ? propNotifications : []);
         setSkills(currentSkills);
         setAiSkills(currentAiSkills);
 
@@ -83,7 +85,7 @@ export default function Dashboardemploye({ skills: propSkills, aiSkills: propAiS
             uniqueTypes: Object.keys(typeStats).length,
             uniqueDomains: Object.keys(domainStats).length,
         });
-    }, [propSkills, propAiSkills]);
+    }, [propSkills, propAiSkills, propNotifications]);
 
     const summaryCards = [
         { label: 'Total Skills', value: summary.totalSkills, accent: true, icon: '⚡' },
@@ -127,6 +129,132 @@ export default function Dashboardemploye({ skills: propSkills, aiSkills: propAiS
                     </div>
                 ))}
             </div>
+
+            {/* ── Recommendation Stats ── */}
+            {notifications.length > 0 && (() => {
+                const uniqueNotifs = notifications.reduce((acc, n) => {
+                    if (!acc.find(x => x.projectId === n.projectId)) acc.push(n);
+                    return acc;
+                }, []);
+                const assigned = uniqueNotifs.filter(n => n.assigned);
+                const matching = uniqueNotifs.filter(n => !n.assigned);
+                const totalCourses = uniqueNotifs.reduce((a, n) => a + (Array.isArray(n.recommendedCourses) ? n.recommendedCourses.length : 0), 0);
+                const avgScore = uniqueNotifs.length > 0
+                    ? Math.round(uniqueNotifs.reduce((a, n) => a + (n.score || 0), 0) / uniqueNotifs.length * 100)
+                    : 0;
+
+                return (
+                    <div style={{ marginBottom: '28px' }}>
+                        {/* Header */}
+                        <div className="de-card-head" style={{ marginBottom: '16px', padding: '0 4px' }}>
+                            <span className="de-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            </span>
+                            <h2 className="de-card-title">Recommandations & Matching</h2>
+                            <span className="de-card-count">{uniqueNotifs.length} projet{uniqueNotifs.length > 1 ? 's' : ''}</span>
+                        </div>
+
+                        {/* Summary mini-cards */}
+                        <div className="de-summary-row" style={{ marginBottom: '20px' }}>
+                            {[
+                                { label: 'Projets uniques', value: uniqueNotifs.length, icon: '🗂️', accent: true },
+                                { label: 'Affectations', value: assigned.length, icon: '✅' },
+                                { label: 'Matching', value: matching.length, icon: '🔍' },
+                                { label: 'Formations', value: totalCourses, icon: '📚' },
+                                { label: 'Score moyen', value: avgScore + '%', icon: '📊' },
+                            ].map(c => (
+                                <div className={`de-summary-card${c.accent ? ' de-accent' : ''}`} key={c.label}>
+                                    <span className="de-summary-icon">{c.icon}</span>
+                                    <span className="de-summary-val">{c.value}</span>
+                                    <span className="de-summary-lbl">{c.label}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Projects score bars */}
+                        <div className="de-grid-2">
+                            {/* Score par projet */}
+                            <div className="de-card">
+                                <div className="de-card-head">
+                                    <span className="de-card-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                    </span>
+                                    <h2 className="de-card-title">Score par projet</h2>
+                                    <span className="de-card-count">{uniqueNotifs.length}</span>
+                                </div>
+                                <div className="de-bar-list">
+                                    {[...uniqueNotifs]
+                                        .sort((a, b) => (b.score || 0) - (a.score || 0))
+                                        .slice(0, 8)
+                                        .map((n, i) => {
+                                            const pct = Math.round((n.score || 0) * 100);
+                                            const color = pct >= 70 ? '#10b981' : pct >= 40 ? '#f59e0b' : '#ef4444';
+                                            return (
+                                                <div className="de-bar-item" key={i}>
+                                                    <div className="de-bar-top">
+                                                        <span className="de-bar-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span style={{
+                                                                width: 8, height: 8, borderRadius: '50%',
+                                                                background: n.assigned ? '#10b981' : '#3b82f6',
+                                                                flexShrink: 0, display: 'inline-block'
+                                                            }} />
+                                                            {n.projectName}
+                                                        </span>
+                                                        <span className="de-bar-val" style={{ color }}>{pct}%</span>
+                                                    </div>
+                                                    <div className="de-bar-track">
+                                                        <div className="de-bar-fill" style={{
+                                                            width: `${pct}%`,
+                                                            background: `linear-gradient(90deg, ${color}88, ${color})`,
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+
+                            {/* Formations par projet */}
+                            <div className="de-card">
+                                <div className="de-card-head">
+                                    <span className="de-card-icon">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                                    </span>
+                                    <h2 className="de-card-title">Formations par projet</h2>
+                                    <span className="de-card-count">{totalCourses}</span>
+                                </div>
+                                <div className="de-bar-list">
+                                    {[...uniqueNotifs]
+                                        .filter(n => (n.recommendedCourses || []).length > 0)
+                                        .sort((a, b) => b.recommendedCourses.length - a.recommendedCourses.length)
+                                        .slice(0, 8)
+                                        .map((n, i) => {
+                                            const count = n.recommendedCourses.length;
+                                            const maxC = Math.max(...uniqueNotifs.map(x => (x.recommendedCourses || []).length), 1);
+                                            return (
+                                                <div className="de-bar-item" key={i}>
+                                                    <div className="de-bar-top">
+                                                        <span className="de-bar-name">{n.projectName}</span>
+                                                        <span className="de-bar-val">{count} cours</span>
+                                                    </div>
+                                                    <div className="de-bar-track">
+                                                        <div className="de-bar-fill" style={{
+                                                            width: `${(count / maxC) * 100}%`,
+                                                            background: 'linear-gradient(90deg, #8b5cf6, #c4b5fd)',
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    {uniqueNotifs.every(n => !(n.recommendedCourses || []).length) && (
+                                        <div className="de-empty"><span>Aucune formation disponible</span></div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Stats sections */}
             <div className="de-grid-2">

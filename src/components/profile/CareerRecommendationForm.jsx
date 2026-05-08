@@ -24,6 +24,60 @@ const INTERESTS = [
   'Project Management', 'Quality Assurance', 'Database Administration', 'Network Engineering'
 ];
 
+const deriveCareerStage = (yearsExperience) => {
+  const years = Number(yearsExperience);
+  if (!Number.isFinite(years) || years < 0) return 'Entry';
+  if (years < 3) return 'Entry';
+  if (years < 7) return 'Mid';
+  if (years < 12) return 'Advanced';
+  if (years < 18) return 'Management';
+  return 'Leadership';
+};
+
+const deriveCareerTrack = (domain, currentRole) => {
+  const role = (currentRole || '').toLowerCase();
+  const dom = (domain || '').toLowerCase();
+
+  if (role.includes('qa') || role.includes('quality') || role.includes('test')) return 'Quality Engineering';
+  if (role.includes('devops') || role.includes('platform') || role.includes('cloud')) return 'Cloud & Platform';
+  if (role.includes('data') || role.includes('bi') || role.includes('analytics')) return 'Data & Analytics';
+  if (role.includes('ml') || role.includes('ai')) return 'AI Engineering';
+  if (role.includes('security') || role.includes('cyber')) return 'Cybersecurity';
+  if (role.includes('consult') || role.includes('business analyst')) return 'Consulting';
+  if (role.includes('design') || role.includes('ux') || role.includes('ui')) return 'Design';
+  if (role.includes('finance') || role.includes('financial') || role.includes('cfo')) return 'Finance';
+  if (dom.includes('consulting')) return 'Consulting';
+  if (dom.includes('design')) return 'Design';
+  if (dom.includes('finance')) return 'Finance';
+  return 'Software Engineering';
+};
+
+const extractApiErrorMessage = (errorData) => {
+  if (!errorData) return 'Failed to get recommendation';
+
+  if (typeof errorData.detail === 'string') {
+    return errorData.detail;
+  }
+
+  if (Array.isArray(errorData.detail)) {
+    return errorData.detail
+      .map((item) => {
+        if (item?.msg && Array.isArray(item?.loc)) {
+          return `${item.loc.join('.')} : ${item.msg}`;
+        }
+        if (item?.msg) return item.msg;
+        return JSON.stringify(item);
+      })
+      .join('\n');
+  }
+
+  if (typeof errorData.message === 'string') {
+    return errorData.message;
+  }
+
+  return 'Failed to get recommendation';
+};
+
 const CareerRecommendationForm = ({ employeeSkills = [] }) => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -85,10 +139,13 @@ const CareerRecommendationForm = ({ employeeSkills = [] }) => {
     setLoading(true);
 
     try {
+      const careerStage = deriveCareerStage(formData.years_experience);
+      const careerTrack = deriveCareerTrack(formData.domain, formData.current_role);
       const payload = {
         current_role: formData.current_role,
         education_level: formData.education_level,
-        career_level: 'mid_level',
+        career_stage: careerStage,
+        career_track: careerTrack,
         years_experience: parseInt(formData.years_experience),
         performance_rating: parseInt(formData.performance_rating),
         skills: formData.skills,
@@ -104,16 +161,24 @@ const CareerRecommendationForm = ({ employeeSkills = [] }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to get recommendation');
+        let errorData = null;
+        try {
+          errorData = await response.json();
+        } catch (_) {
+          // Keep fallback message when body is not JSON.
+        }
+        throw new Error(extractApiErrorMessage(errorData));
       }
 
       const data = await response.json();
+      const normalizedConfidence = typeof data.confidence === 'number'
+        ? (data.confidence > 1 ? data.confidence / 100 : data.confidence)
+        : data.next_role_probability;
       const normalized = {
         ...data,
         current_role: data.current_role || formData.current_role,
-        next_role_probability: data.confidence ?? data.next_role_probability,
-        confidence: data.confidence ?? data.next_role_probability,
+        next_role_probability: normalizedConfidence,
+        confidence: normalizedConfidence,
         top_3_recommendations: (data.top_3_recommendations || []).map((rec) => ({
           ...rec,
           confidence_percentage: rec.confidence ?? rec.confidence_percentage ?? 0,

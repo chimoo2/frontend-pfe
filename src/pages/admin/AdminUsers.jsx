@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { getUsers, createUser, deleteUser, updateUser } from "../../api/adminApi";
+import { getAllProjects, updateProject as updateProjectApi, deleteProject as deleteProjectApi } from "../../api/projectApi";
 import { useAuth } from "../../context/AuthContext";
+import ProjectDetailModal from "../../components/kanban/ProjectDetailModal";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
 import "./AdminUsers.css";
@@ -22,18 +24,82 @@ function getInitials(prenom, nom) {
   return ((prenom?.[0] || "") + (nom?.[0] || "")).toUpperCase() || "?";
 }
 
+function getProjectStatusClass(status) {
+  const value = (status || "").toLowerCase();
+  if (value.includes("progress")) return "progress";
+  if (value.includes("complete") || value.includes("done")) return "completed";
+  return "todo";
+}
+
+function getProjectStatusLabel(status) {
+  const statusClass = getProjectStatusClass(status);
+  if (statusClass === "progress") return "In Progress";
+  if (statusClass === "completed") return "Completed";
+  return "To Do";
+}
+
+function formatProjectDate(date) {
+  if (!date) return "No date";
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function mapProjectToDetailModal(project) {
+  return {
+    ...project,
+    skillsNeeded: (project.requiredSkills || []).map((skill) => ({
+      skill: skill.skillName || skill.skill || "",
+      level: skill.level || "Intermediate",
+      count: skill.count ?? 1,
+      domain: skill.domain || "",
+      family: skill.family || "",
+      category: skill.category || "",
+      type: skill.type || "",
+    })),
+    categoryRequirements: project.categoryRequirements || [],
+    teamAssigned: project.teamMembers || project.teamAssigned || [],
+  };
+}
+
+function mapDetailModalToProjectPayload(project) {
+  return {
+    ...project,
+    requiredSkills: (project.skillsNeeded || []).map((skill) => ({
+      skillName: skill.skill || skill.skillName || "",
+      level: skill.level || "Intermediate",
+      count: skill.count ?? 1,
+      domain: skill.domain || "",
+      family: skill.family || "",
+      category: skill.category || "",
+      type: skill.type || "",
+    })),
+    categoryRequirements: project.categoryRequirements || [],
+    teamMembers: project.teamAssigned || project.teamMembers || [],
+  };
+}
+
 export default function AdminUsers() {
   const { user, logout } = useAuth();
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [search, setSearch] = useState("");
   const [tableSearch, setTableSearch] = useState("");
+  const [projectSearch, setProjectSearch] = useState("");
   const [activeTab, setActiveTab] = useState("users");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
+  const [projectDeleteTarget, setProjectDeleteTarget] = useState(null);
+  const [projectEditTarget, setProjectEditTarget] = useState(null);
   const [editForm, setEditForm] = useState({ prenom: "", nom: "", email: "", role: "ROLE_USER", password: "" });
 
   const [form, setForm] = useState({
@@ -44,7 +110,10 @@ export default function AdminUsers() {
     role: "ROLE_USER",
   });
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    loadProjects();
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -56,6 +125,19 @@ export default function AdminUsers() {
       setError(e.message || "Error loading users");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProjects = async () => {
+    setProjectsLoading(true);
+    setError(null);
+    try {
+      const data = await getAllProjects();
+      setProjects(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || "Error loading projects");
+    } finally {
+      setProjectsLoading(false);
     }
   };
 
@@ -113,6 +195,50 @@ export default function AdminUsers() {
     }
   };
 
+  const openProjectEdit = (project) => {
+    setProjectEditTarget(mapProjectToDetailModal(project));
+  };
+
+  const handleProjectEdit = async (updatedProject) => {
+    if (!updatedProject) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      const parsedCount = updatedProject.count === "" || updatedProject.count === null
+        ? null
+        : Number(updatedProject.count);
+      const payload = {
+        ...mapDetailModalToProjectPayload(updatedProject),
+        count: Number.isNaN(parsedCount) ? null : parsedCount,
+        status: updatedProject.status || "To Do",
+        endDate: updatedProject.endDate || null,
+      };
+      await updateProjectApi(updatedProject.id, payload);
+      setSuccess(`Project ${payload.name} has been updated.`);
+      setProjectEditTarget(null);
+      await loadProjects();
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (e) {
+      setError(e.message || "Error updating project");
+    }
+  };
+
+  const handleProjectDelete = async () => {
+    if (!projectDeleteTarget) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await deleteProjectApi(projectDeleteTarget.id);
+      setSuccess(`${projectDeleteTarget.name} has been deleted.`);
+      setProjectDeleteTarget(null);
+      await loadProjects();
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (e) {
+      setError(e.message || "Error deleting project");
+      setProjectDeleteTarget(null);
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     const q = tableSearch.trim().toLowerCase();
     if (!q) return true;
@@ -121,11 +247,38 @@ export default function AdminUsers() {
       .some((v) => v.toLowerCase().includes(q));
   });
 
+  const filteredProjects = projects.filter((project) => {
+    const query = projectSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [project.name, project.manager, project.status, project.description]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(query));
+  });
+
   const counts = {
     total: users.length,
     admins: users.filter((u) => u.role === "ROLE_ADMIN").length,
     managers: users.filter((u) => u.role === "ROLE_MANAGER").length,
     employees: users.filter((u) => u.role === "ROLE_USER").length,
+  };
+
+  const projectCounts = {
+    total: projects.length,
+    managers: new Set(projects.map((project) => (project.manager || "").toLowerCase()).filter(Boolean)).size,
+    inProgress: projects.filter((project) => getProjectStatusClass(project.status) === "progress").length,
+    completed: projects.filter((project) => getProjectStatusClass(project.status) === "completed").length,
+  };
+
+  const managerNameByEmail = users.reduce((acc, account) => {
+    if (!account.email) return acc;
+    const fullName = `${account.prenom || ""} ${account.nom || ""}`.trim();
+    acc[account.email.toLowerCase()] = fullName || account.email;
+    return acc;
+  }, {});
+
+  const getManagerDisplayName = (managerEmail) => {
+    if (!managerEmail) return "Unknown manager";
+    return managerNameByEmail[managerEmail.toLowerCase()] || managerEmail;
   };
 
   return (
@@ -142,7 +295,7 @@ export default function AdminUsers() {
               { id: "dashboard", label: "Dashboard", icon: "📊" },
               { id: "users", label: "User Management", icon: "👥" },
               { id: "projects", label: "Projects", icon: "📁" },
-              { id: "settings", label: "Settings", icon: "⚙️" },
+            
             ],
           },
         ]}
@@ -157,8 +310,11 @@ export default function AdminUsers() {
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         search={search}
         setSearch={setSearch}
-        onRefresh={load}
-        loading={loading}
+        onRefresh={() => {
+          load();
+          loadProjects();
+        }}
+        loading={loading || projectsLoading}
         title="Administration"
         searchPlaceholder="Search..."
       />
@@ -373,10 +529,130 @@ export default function AdminUsers() {
 
           {/* ==================== OTHER TABS ==================== */}
           {activeTab === "projects" && (
-            <div className="au-placeholder">
-              <h2>Project Management</h2>
-              <p>Coming soon</p>
-            </div>
+            <>
+              <div className="au-page-header">
+                <div>
+                  <h1>Project Management</h1>
+                  <p>Browse every project, see which manager owns it, then edit or delete it from here.</p>
+                </div>
+                <div className="au-header-stats">
+                  <div className="au-mini-stat">
+                    <div className="au-stat-icon purple">📁</div>
+                    <div className="au-stat-copy">
+                      <div className="au-stat-val">{projectCounts.total}</div>
+                      <div className="au-stat-subtext">Projects</div>
+                    </div>
+                  </div>
+                  <div className="au-mini-stat">
+                    <div className="au-stat-icon green">👤</div>
+                    <div className="au-stat-copy">
+                      <div className="au-stat-val">{projectCounts.managers}</div>
+                      <div className="au-stat-subtext">Managers</div>
+                    </div>
+                  </div>
+                  <div className="au-mini-stat">
+                    <div className="au-stat-icon blue">⚡</div>
+                    <div className="au-stat-copy">
+                      <div className="au-stat-val">{projectCounts.inProgress}</div>
+                      <div className="au-stat-subtext">In progress</div>
+                    </div>
+                  </div>
+                  <div className="au-mini-stat">
+                    <div className="au-stat-icon red">✅</div>
+                    <div className="au-stat-copy">
+                      <div className="au-stat-val">{projectCounts.completed}</div>
+                      <div className="au-stat-subtext">Completed</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="au-card">
+                <div className="au-table-toolbar">
+                  <div className="au-table-search">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5"/><path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                    <input placeholder="Search projects or managers..." value={projectSearch} onChange={(e) => setProjectSearch(e.target.value)} />
+                  </div>
+                  <span className="au-table-count"><strong>{filteredProjects.length}</strong> project{filteredProjects.length !== 1 ? "s" : ""}</span>
+                </div>
+
+                {projectsLoading ? (
+                  <div className="au-loading"><div className="au-spinner" /> Loading projects...</div>
+                ) : filteredProjects.length === 0 ? (
+                  <div className="au-empty">
+                    <h3>No projects found</h3>
+                    <p>Try another search or create projects from the manager side.</p>
+                  </div>
+                ) : (
+                  <div className="au-table-wrap">
+                    <table className="au-table">
+                      <thead>
+                        <tr>
+                          <th>Project</th>
+                          <th>Manager</th>
+                          <th>Timeline</th>
+                          <th>Status</th>
+                          <th>Scope</th>
+                          <th className="au-th-actions">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredProjects.map((project) => {
+                          const statusClass = getProjectStatusClass(project.status);
+                          const managerDisplayName = getManagerDisplayName(project.manager);
+                          return (
+                            <tr key={project.id}>
+                              <td>
+                                <div className="au-project-cell">
+                                  <div className="au-project-icon">📁</div>
+                                  <div className="au-project-info">
+                                    <span className="au-project-name">{project.name}</span>
+                                    <span className="au-project-desc">{project.description || "No description provided"}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="au-project-owner">
+                                  <span className="au-project-owner-name">{managerDisplayName}</span>
+                                  {project.manager && managerDisplayName !== project.manager && (
+                                    <span className="au-project-owner-email">{project.manager}</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="au-project-meta">
+                                  <span>{formatProjectDate(project.startDate)}</span>
+                                  <span>{project.duration || (project.endDate ? `Until ${formatProjectDate(project.endDate)}` : "No duration")}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`au-role au-role-project au-role-${statusClass}`}>{getProjectStatusLabel(project.status)}</span>
+                              </td>
+                              <td>
+                                <div className="au-project-scope">
+                                  <span>{project.requiredSkills?.length || 0} skills</span>
+                                  <span>{project.count || 0} people</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="au-actions">
+                                  <button className="au-btn-icon edit" title="Edit project" onClick={() => openProjectEdit(project)}>
+                                    <span role="img" className="au-btn-emoji">✏️</span>
+                                  </button>
+                                  <button className="au-btn-icon danger" title="Delete project" onClick={() => setProjectDeleteTarget(project)}>
+                                    <span role="img" className="au-btn-emoji">🗑️</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
           )}
           {activeTab === "settings" && (
             <div className="au-placeholder">
@@ -449,6 +725,47 @@ export default function AdminUsers() {
             </form>
           </div>
         </div>
+      )}
+
+      {projectDeleteTarget && (
+        <div className="au-modal-overlay" onClick={() => setProjectDeleteTarget(null)}>
+          <div className="au-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="au-modal-icon">
+              <svg width="28" height="28" fill="none" viewBox="0 0 28 28"><path d="M4 8h20M9.33 8V5.33A2.67 2.67 0 0112 2.67h4a2.67 2.67 0 012.67 2.66V8m4 0v16a2.67 2.67 0 01-2.67 2.67H8a2.67 2.67 0 01-2.67-2.67V8H22.67z" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <h3>Delete this project?</h3>
+            <p>You are about to remove</p>
+            <p className="au-modal-user">{projectDeleteTarget.name}</p>
+            <p>This action cannot be undone.</p>
+            <div className="au-modal-actions">
+              <button className="au-modal-cancel" onClick={() => setProjectDeleteTarget(null)}>Cancel</button>
+              <button className="au-modal-delete" onClick={handleProjectDelete}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {projectEditTarget && (
+        <ProjectDetailModal
+          open={!!projectEditTarget}
+          onClose={() => setProjectEditTarget(null)}
+          project={projectEditTarget}
+          onSave={handleProjectEdit}
+          onDelete={async (projectId) => {
+            try {
+              setError(null);
+              setSuccess(null);
+              await deleteProjectApi(projectId);
+              setSuccess(`Project ${projectEditTarget.name} has been deleted.`);
+              setProjectEditTarget(null);
+              await loadProjects();
+              setTimeout(() => setSuccess(null), 4000);
+            } catch (e) {
+              setError(e.message || "Error deleting project");
+            }
+          }}
+          showMatchingAction={false}
+        />
       )}
     </div>
   );

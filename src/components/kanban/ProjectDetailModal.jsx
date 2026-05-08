@@ -4,7 +4,7 @@ import SkillCategoryRequirementsTable from '../project/SkillCategoryRequirements
 import { markProjectMatched } from '../../utils/matchingHistory';
 import './KanbanBoard.css';
 
-export default function ProjectDetailModal({ open, onClose, project, onSave, onDelete }) {
+export default function ProjectDetailModal({ open, onClose, project, onSave, onDelete, showMatchingAction = true }) {
   const navigate = useNavigate();
   const [form, setForm] = React.useState(project || {});
   const [activeTab, setActiveTab] = React.useState('info');
@@ -331,17 +331,19 @@ export default function ProjectDetailModal({ open, onClose, project, onSave, onD
               {/* Actions Card */}
               <div className="km-sidebar-card">
                 <div className="km-sidebar-actions">
-                  <button
-                    className="km-btn km-btn-matching"
-                    onClick={() => {
-                      markProjectMatched(form.id);
-                      navigate(`/manager/matching/${form.id}`);
-                      onClose();
-                    }}
-                  >
-                    <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M6 3l4 5-4 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    View Matching
-                  </button>
+                  {showMatchingAction && (
+                    <button
+                      className="km-btn km-btn-matching"
+                      onClick={() => {
+                        markProjectMatched(form.id);
+                        navigate(`/manager/matching/${form.id}`);
+                        onClose();
+                      }}
+                    >
+                      <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M6 3l4 5-4 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      View Matching
+                    </button>
+                  )}
                   <button className="km-btn km-btn-primary-full" onClick={() => onSave && onSave(form)}>
                     <svg width="15" height="15" fill="none" viewBox="0 0 16 16"><path d="M13.3 4.7L6.5 11.5 2.7 7.7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Save Changes
