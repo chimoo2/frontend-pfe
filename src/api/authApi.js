@@ -60,3 +60,26 @@ export async function resetPassword(token, newPassword) {
 
   return res.text();
 }
+
+export async function changePassword(oldPassword, newPassword, confirmPassword) {
+  const token = localStorage.getItem('authToken');
+  const res = await fetch(`${BASE_URL}/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ oldPassword, newPassword, confirmPassword }),
+  });
+
+  const contentType = res.headers.get('content-type') || '';
+  const body = contentType.includes('application/json') ? await res.json() : await res.text();
+
+  if (!res.ok) {
+    const errMsg = body && typeof body === 'object' ? (body.error || body.message || JSON.stringify(body)) : String(body);
+    throw new Error(errMsg || 'Change password failed');
+  }
+
+  return body;
+}
+

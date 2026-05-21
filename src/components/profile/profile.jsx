@@ -353,9 +353,18 @@ export default function EmployeeProfile() {
         })
         .slice(0, 3);
 
+    // Correction : garantir que seuls les noms (string) sont envoyés
     const combinedSkills = Array.from(new Set([
-        ...skills.map(skill => skill.name?.trim()).filter(Boolean),
-        ...aiSkills.map(skill => (typeof skill === 'string' ? skill.trim() : skill.name?.trim())).filter(Boolean),
+        ...skills.map(skill => {
+            if (typeof skill === 'string') return skill.trim();
+            if (skill && typeof skill.name === 'string') return skill.name.trim();
+            return null;
+        }).filter(Boolean),
+        ...aiSkills.map(skill => {
+            if (typeof skill === 'string') return skill.trim();
+            if (skill && typeof skill.name === 'string') return skill.name.trim();
+            return null;
+        }).filter(Boolean),
     ]));
     
     const getCategoryStats = () => {

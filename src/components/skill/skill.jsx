@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./skill.css";
 
 const LEVEL_MAP = {
@@ -9,7 +9,7 @@ const LEVEL_MAP = {
 };
 
 const COLUMNS = [
-  { key: "name",       label: "Skill",      icon: "💡" },
+  { key: "skill_name",  label: "Skill",      icon: "💡" },
   { key: "category",   label: "Category",   icon: "📂" },
   { key: "family",     label: "Family",     icon: "🏷️" },
   { key: "type",       label: "Type",       icon: "⚙️" },
@@ -18,18 +18,48 @@ const COLUMNS = [
   { key: "experience", label: "Experience", icon: "⏱️" },
 ];
 
+const getSkillFieldValue = (skill, key) => {
+  if (key === "skill_name") {
+    return skill?.skill_name || skill?.name || "";
+  }
+  return skill?.[key] ?? "";
+};
+
 export default function SkillSection({
-  aiSkills,
-  editingAiSkill,
-  editAiForm,
-  onStartEditingAiSkill,
-  onCancelEditingAiSkill,
-  onSaveAiSkill,
-  onDeleteAiSkill,
-  onAiEditInputChange,
+  skills = [],
+  editingSkill,
+  editForm,
+  onStartEditingSkill,
+  onCancelEditingSkill,
+  onSaveSkill,
+  onDeleteSkill,
+  onEditInputChange,
+  onAddSkillClick,
+  isAddingSkill = false,
   sectionId = "skills",
 }) {
   const levelInfo = (lvl) => LEVEL_MAP[lvl] || LEVEL_MAP.Junior;
+  const [deleteTarget, setDeleteTarget] = useState(null); // { rowId, name }
+
+  const requestDelete = (rowId, skill) => {
+    setDeleteTarget({
+      rowId,
+      name: getSkillFieldValue(skill, "skill_name") || "this skill",
+    });
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      onDeleteSkill(deleteTarget.rowId);
+      setDeleteTarget(null);
+    }
+  };
+
+  const cancelDelete = () => setDeleteTarget(null);
+
+  const rows = editingSkill === "new"
+    ? [{ __new: true, skill_name: "", category: "", family: "", type: "Technical", level: "Intermediate", domain: "", experience: 0 }, ...skills]
+    : skills;
 
   return (
     <section id={sectionId} className="sk-section">
@@ -40,22 +70,23 @@ export default function SkillSection({
           <div>
             <h1 className="sk-title">My Skills</h1>
             <p className="sk-subtitle">
-              AI-extracted skills from your CV — edit, review or remove entries.
+              Vos compétences enregistrées — ajoutez, modifiez ou supprimez-les.
             </p>
           </div>
-          <span className="sk-count">{aiSkills.length} skill{aiSkills.length !== 1 ? "s" : ""}</span>
+          <span className="sk-count">{skills.length} skill{skills.length !== 1 ? "s" : ""}</span>
+          <button className="sk-btn sk-btn-add" style={{marginLeft: 16}} onClick={onAddSkillClick}>+ Add Skill</button>
         </div>
       </div>
 
       {/* ---- Content ---- */}
-      {aiSkills.length === 0 ? (
+      {skills.length === 0 && editingSkill !== "new" ? (
         <div className="sk-empty">
           <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
             <circle cx="28" cy="28" r="28" fill="#eff6ff" />
             <path d="M20 30l4 4 12-12" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <h3>No skills detected yet</h3>
-          <p>Upload your CV to let the AI extract your competencies automatically.</p>
+          <p>Ajoutez vos compétences pour commencer.</p>
         </div>
       ) : (
         <div className="sk-table-wrap">
@@ -72,12 +103,13 @@ export default function SkillSection({
               </tr>
             </thead>
             <tbody>
-              {aiSkills.map((skill, index) => {
-                const editing = editingAiSkill === index;
-                const lv = levelInfo(editing ? editAiForm.level : skill.level);
+              {rows.map((skill, index) => {
+                const rowId = skill.__new ? "new" : (editingSkill === "new" ? index - 1 : index);
+                const editing = editingSkill === rowId;
+                const lv = levelInfo(editing ? editForm.level : skill.level);
 
                 return (
-                  <tr key={index} className={editing ? "sk-row-editing" : ""}>
+                  <tr key={skill.__new ? "new-row" : index} className={editing ? "sk-row-editing" : ""}>
                     <td className="sk-cell-num">{index + 1}</td>
 
                     {COLUMNS.map((c) => {
@@ -88,8 +120,8 @@ export default function SkillSection({
                               <select
                                 className="sk-input sk-select"
                                 name="level"
-                                value={editAiForm.level}
-                                onChange={onAiEditInputChange}
+                                value={editForm.level}
+                                onChange={onEditInputChange}
                               >
                                 {Object.keys(LEVEL_MAP).map((l) => (
                                   <option key={l} value={l}>{l}</option>
@@ -113,8 +145,8 @@ export default function SkillSection({
                                 className="sk-input sk-input-num"
                                 name="experience"
                                 type="number"
-                                value={editAiForm.experience}
-                                onChange={onAiEditInputChange}
+                                value={editForm.experience}
+                                onChange={onEditInputChange}
                                 min="0"
                                 max="120"
                               />
@@ -133,11 +165,11 @@ export default function SkillSection({
                             <input
                               className="sk-input"
                               name={c.key}
-                              value={editAiForm[c.key]}
-                              onChange={onAiEditInputChange}
+                              value={editForm[c.key] ?? ""}
+                              onChange={onEditInputChange}
                             />
                           ) : (
-                            <span className="sk-cell-text">{skill[c.key] || "—"}</span>
+                            <span className="sk-cell-text">{getSkillFieldValue(skill, c.key) || "—"}</span>
                           )}
                         </td>
                       );
@@ -147,21 +179,29 @@ export default function SkillSection({
                       <div className="sk-actions">
                         {editing ? (
                           <>
-                            <button className="sk-btn sk-btn-save" onClick={() => onSaveAiSkill(index)} title="Save">
+                            <button className="sk-btn sk-btn-save" onClick={() => onSaveSkill(rowId)} title="Save">
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                             </button>
-                            <button className="sk-btn sk-btn-cancel" onClick={onCancelEditingAiSkill} title="Cancel">
+                            <button className="sk-btn sk-btn-cancel" onClick={onCancelEditingSkill} title="Cancel">
                               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                             </button>
                           </>
                         ) : (
                           <>
-                            <button className="sk-btn sk-btn-edit" onClick={() => onStartEditingAiSkill(skill, index)} title="Edit">
-                              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M10.586 1.586a2 2 0 012.828 2.828L5.5 12.328 1.5 13.5l1.172-4L10.586 1.586z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            </button>
-                            <button className="sk-btn sk-btn-delete" onClick={() => onDeleteAiSkill(index)} title="Delete">
-                              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 4h11M5.5 4V2.5a1 1 0 011-1h2a1 1 0 011 1V4m1.5 0v8a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 013.5 12V4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            </button>
+                           <button
+  className="sk-btn sk-btn-edit"
+  onClick={() => onStartEditingSkill(skill, rowId)}
+  title="Modifier"
+>
+  ✏️
+</button>
+                            <button
+  className="sk-btn sk-btn-delete"
+  onClick={() => requestDelete(rowId, skill)}
+  title="Delete"
+>
+  🗑️
+</button>
                           </>
                         )}
                       </div>
@@ -171,6 +211,39 @@ export default function SkillSection({
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="sk-modal-overlay"
+          onClick={cancelDelete}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="sk-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sk-modal-icon" aria-hidden="true">⚠️</div>
+            <h3 className="sk-modal-title">Delete skill?</h3>
+            <p className="sk-modal-text">
+              Are you sure you want to delete <strong>{deleteTarget.name}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="sk-modal-actions">
+              <button
+                className="sk-btn sk-modal-btn sk-modal-cancel"
+                onClick={cancelDelete}
+              >
+                Cancel
+              </button>
+              <button
+                className="sk-btn sk-modal-btn sk-modal-confirm"
+                onClick={confirmDelete}
+                autoFocus
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

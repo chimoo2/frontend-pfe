@@ -66,13 +66,11 @@ export default function EmployeSidebar({
               onOpenNotifications();
             }
           }}
-          style={{
-            background: notificationsCount > 0
-              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-              : undefined,
-          }}
         >
-          🏆 Voir recommandations{notificationsCount > 0 ? ` (${notificationsCount})` : ''}
+          <span className="sidebar-cta-text">View recommendations</span>
+          {notificationsCount > 0 && (
+            <span className="sidebar-cta-badge">{notificationsCount > 99 ? '99+' : notificationsCount}</span>
+          )}
         </button>
       </div>
     </aside>

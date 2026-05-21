@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiClient } from '../../api/apiClient';
 import './CareerRecommendationForm.css';
 
 const AVAILABLE_ROLES = [
@@ -154,23 +155,22 @@ const CareerRecommendationForm = ({ employeeSkills = [] }) => {
         interests: formData.interests.join(', '),
       };
 
-      const response = await fetch('http://localhost:8002/career/recommend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
+      let data;
+      try {
+        data = await apiClient('/api/career/recommend', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      } catch (callErr) {
         let errorData = null;
         try {
-          errorData = await response.json();
+          errorData = JSON.parse(callErr.message);
         } catch (_) {
           // Keep fallback message when body is not JSON.
         }
-        throw new Error(extractApiErrorMessage(errorData));
+        throw new Error(extractApiErrorMessage(errorData) || callErr.message || 'Failed to get recommendation');
       }
 
-      const data = await response.json();
       const normalizedConfidence = typeof data.confidence === 'number'
         ? (data.confidence > 1 ? data.confidence / 100 : data.confidence)
         : data.next_role_probability;
@@ -358,10 +358,6 @@ const CareerRecommendationForm = ({ employeeSkills = [] }) => {
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 11h14M13 5l5 6-5 6" stroke="#2563eb" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
               <div>
                 <h3>Next Role: {recommendation.next_role}</h3>
-                <div className="crf-confidence-row">
-                  <div className="crf-confidence-bar"><div className="crf-confidence-fill" style={{ width: `${(recommendation.next_role_probability * 100).toFixed(0)}%` }} /></div>
-                  <span className="crf-confidence-pct">{(recommendation.next_role_probability * 100).toFixed(1)}%</span>
-                </div>
               </div>
             </div>
           </div>
@@ -377,10 +373,6 @@ const CareerRecommendationForm = ({ employeeSkills = [] }) => {
                     <div className="crf-top3-item" key={i}>
                       <span className="crf-top3-rank" style={{ background: colors[i] }}>{i + 1}</span>
                       <span className="crf-top3-role">{rec.role}</span>
-                      <div className="crf-top3-bar">
-                        <div className="crf-top3-fill" style={{ width: `${rec.confidence_percentage}%`, background: colors[i] }} />
-                      </div>
-                      <span className="crf-top3-pct">{rec.confidence_percentage.toFixed(1)}%</span>
                     </div>
                   );
                 })}

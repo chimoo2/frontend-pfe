@@ -23,17 +23,17 @@ export default function ResetPassword() {
     e.preventDefault();
 
     if (!token) {
-      setError("Token manquant. Veuillez redemander la réinitialisation.");
+      setError("Missing token. Please request the reset again.");
       return;
     }
 
     if (password !== confirm) {
-      setError("Les mots de passe ne correspondent pas.");
+      setError("Passwords do not match.");
       return;
     }
 
     if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères.");
+      setError("Password must be at least 6 characters long.");
       return;
     }
 
@@ -41,12 +41,12 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       const resp = await resetPassword(token, password);
-      setMessage(resp || "Mot de passe modifié avec succès.");
+      setMessage(resp || "Password updated successfully.");
       setTimeout(() => {
         navigate("/signin");
       }, 2000);
     } catch (err) {
-      setError(err.message || "Impossible de réinitialiser le mot de passe.");
+      setError(err.message || "Unable to reset password.");
     } finally {
       setLoading(false);
     }
@@ -59,8 +59,8 @@ export default function ResetPassword() {
           <div className="lock-icon">
             <LockOutlinedIcon className="icon" />
           </div>
-          <h1>Réinitialiser votre mot de passe</h1>
-          <p>Créez un nouveau mot de passe sécurisé pour protéger votre compte.</p>
+          <h1>Reset your password</h1>
+          <p>Create a new secure password to protect your account.</p>
         </div>
 
         {message && (
@@ -78,7 +78,7 @@ export default function ResetPassword() {
 
         <form onSubmit={handleSubmit} className="reset-form">
           <div className="form-group">
-            <label htmlFor="password">Nouveau mot de passe</label>
+            <label htmlFor="password">New password</label>
             <div className="password-input-wrapper">
               <input
                 id="password"
@@ -87,7 +87,7 @@ export default function ResetPassword() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                placeholder="Minimum 6 caractères"
+                placeholder="Minimum 6 characters"
               />
               <button
                 type="button"
@@ -100,7 +100,7 @@ export default function ResetPassword() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirm">Confirmer le mot de passe</label>
+            <label htmlFor="confirm">Confirm password</label>
             <div className="password-input-wrapper">
               <input
                 id="confirm"
@@ -109,7 +109,7 @@ export default function ResetPassword() {
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 disabled={loading}
-                placeholder="Confirmez votre mot de passe"
+                placeholder="Confirm your password"
               />
               <button
                 type="button"
@@ -122,12 +122,12 @@ export default function ResetPassword() {
           </div>
 
           <button type="submit" className="btn-reset" disabled={loading}>
-            {loading ? "Traitement..." : "Réinitialiser le mot de passe"}
+            {loading ? "Processing..." : "Reset password"}
           </button>
         </form>
 
         <div className="reset-footer">
-          <a href="/signin">Retour à la connexion</a>
+          <a href="/signin">Back to sign in</a>
         </div>
       </div>
     </div>

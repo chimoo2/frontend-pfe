@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { getUsers, createUser, deleteUser, updateUser } from "../../api/adminApi";
+import { createUser } from "../../api/adminApi";
 import { getAllProjects, updateProject as updateProjectApi, deleteProject as deleteProjectApi } from "../../api/projectApi";
 import { useAuth } from "../../context/AuthContext";
+import { useUsers } from "../../context/UsersContext";
+import { useNavigate } from "react-router-dom";
 import ProjectDetailModal from "../../components/kanban/ProjectDetailModal";
 import Sidebar from "../../components/layout/Sidebar";
 import Topbar from "../../components/layout/Topbar";
@@ -84,23 +86,34 @@ function mapDetailModalToProjectPayload(project) {
 }
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [users, setUsers] = useState([]);
+  const { users, loading: usersLoading, addUser: createUserContext } = useUsers();
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [search, setSearch] = useState("");
-  const [tableSearch, setTableSearch] = useState("");
   const [projectSearch, setProjectSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [editTarget, setEditTarget] = useState(null);
   const [projectDeleteTarget, setProjectDeleteTarget] = useState(null);
   const [projectEditTarget, setProjectEditTarget] = useState(null);
-  const [editForm, setEditForm] = useState({ prenom: "", nom: "", email: "", role: "ROLE_USER", password: "" });
+
+  // Liste des rôles métiers (mêmes que CareerRecommendationForm)
+  const AVAILABLE_ROLES = [
+    'Junior Developer', 'Developer', 'Senior Developer', 'Tech Lead', 'Architect',
+    'Junior QA Engineer', 'QA Engineer', 'Senior QA Engineer', 'QA Lead', 'QA Manager',
+    'Junior DevOps Engineer', 'DevOps Engineer', 'Senior DevOps Engineer', 'DevOps Lead', 'DevOps Architect',
+    'Data Analyst', 'Senior Data Analyst', 'Data Scientist', 'Data Architect', 'Chief Data Officer',
+    'Junior Data Engineer', 'Data Engineer', 'Senior Data Engineer', 'Data Engineering Lead', 'Data Platform Architect',
+    'ML Engineer', 'Senior ML Engineer', 'ML Architect', 'AI Research Lead', 'Chief AI Officer',
+    'Business Analyst', 'Senior Business Analyst', 'BI Analyst', 'BI Manager', 'BI Director',
+    'Junior Designer', 'Designer', 'Senior Designer', 'Design Lead', 'Creative Director',
+    'Junior Consultant', 'Consultant', 'Senior Consultant', 'Manager', 'Director',
+    'Financial Analyst', 'Senior Financial Analyst', 'Finance Manager', 'Finance Director', 'CFO',
+    'Security Analyst', 'Senior Security Engineer', 'Security Architect', 'Security Manager', 'CISO',
+  ];
 
   const [form, setForm] = useState({
     prenom: "",
@@ -108,25 +121,12 @@ export default function AdminUsers() {
     email: "",
     password: "",
     role: "ROLE_USER",
+    current_role: "",
   });
 
   useEffect(() => {
-    load();
     loadProjects();
   }, []);
-
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getUsers();
-      setUsers(data);
-    } catch (e) {
-      setError(e.message || "Error loading users");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const loadProjects = async () => {
     setProjectsLoading(true);
@@ -146,57 +146,18 @@ export default function AdminUsers() {
     setError(null);
     setSuccess(null);
     try {
-      await createUser(form);
-      setForm({ prenom: "", nom: "", email: "", password: "", role: "ROLE_USER" });
+      const payload = { ...form };
+      if (payload.current_role !== undefined) {
+        payload.currentRole = payload.current_role;
+        delete payload.current_role;
+      }
+      await createUserContext(payload);
+      setForm({ prenom: "", nom: "", email: "", password: "", role: "ROLE_USER", current_role: "" });
       setSuccess("User created successfully.");
-      load();
       setTimeout(() => setSuccess(null), 4000);
     } catch (e) {
       setError(e.message || "Error creating user");
     }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setError(null);
-    setSuccess(null);
-    try {
-      await deleteUser(deleteTarget.id);
-      setSuccess(`${deleteTarget.prenom} ${deleteTarget.nom} has been deleted.`);
-      setDeleteTarget(null);
-      load();
-      setTimeout(() => setSuccess(null), 4000);
-    } catch (e) {
-      setError(e.message || "Error deleting user");
-      setDeleteTarget(null);
-    }
-  };
-
-  const openEdit = (u) => {
-    setEditTarget(u);
-    setEditForm({ prenom: u.prenom || "", nom: u.nom || "", email: u.email || "", role: u.role || "ROLE_USER", password: "" });
-  };
-
-  const handleEdit = async (evt) => {
-    evt.preventDefault();
-    if (!editTarget) return;
-    setError(null);
-    setSuccess(null);
-    try {
-      const payload = { ...editForm };
-      if (!payload.password) delete payload.password;
-      await updateUser(editTarget.id, payload);
-      setSuccess(`${editForm.prenom} ${editForm.nom} has been updated.`);
-      setEditTarget(null);
-      load();
-      setTimeout(() => setSuccess(null), 4000);
-    } catch (e) {
-      setError(e.message || "Error updating user");
-    }
-  };
-
-  const openProjectEdit = (project) => {
-    setProjectEditTarget(mapProjectToDetailModal(project));
   };
 
   const handleProjectEdit = async (updatedProject) => {
@@ -239,13 +200,9 @@ export default function AdminUsers() {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const q = tableSearch.trim().toLowerCase();
-    if (!q) return true;
-    return [u.prenom, u.nom, u.email, u.role]
-      .filter(Boolean)
-      .some((v) => v.toLowerCase().includes(q));
-  });
+  const openProjectEdit = (project) => {
+    setProjectEditTarget(mapProjectToDetailModal(project));
+  };
 
   const filteredProjects = projects.filter((project) => {
     const query = projectSearch.trim().toLowerCase();
@@ -267,6 +224,7 @@ export default function AdminUsers() {
     managers: new Set(projects.map((project) => (project.manager || "").toLowerCase()).filter(Boolean)).size,
     inProgress: projects.filter((project) => getProjectStatusClass(project.status) === "progress").length,
     completed: projects.filter((project) => getProjectStatusClass(project.status) === "completed").length,
+    todo: projects.filter((project) => getProjectStatusClass(project.status) === "todo").length,
   };
 
   const managerNameByEmail = users.reduce((acc, account) => {
@@ -281,6 +239,16 @@ export default function AdminUsers() {
     return managerNameByEmail[managerEmail.toLowerCase()] || managerEmail;
   };
 
+  // --- Compute project count per manager ---
+  const managerProjectCounts = users
+    .filter((u) => u.role === "ROLE_MANAGER")
+    .map((manager) => {
+      const email = manager.email?.toLowerCase();
+      const fullName = `${manager.prenom || ""} ${manager.nom || ""}`.trim() || manager.email;
+      const count = projects.filter((p) => (p.manager || "").toLowerCase() === email).length;
+      return { email, fullName, count };
+    });
+
   return (
     <div className="admin-layout">
       <Sidebar
@@ -293,14 +261,25 @@ export default function AdminUsers() {
             title: "Administration",
             items: [
               { id: "dashboard", label: "Dashboard", icon: "📊" },
-              { id: "users", label: "User Management", icon: "👥" },
+              { id: "create-user", label: "Create User", icon: "➕" },
               { id: "projects", label: "Projects", icon: "📁" },
-            
+            ],
+          },
+          {
+            title: "Navigation",
+            items: [
+              { id: "user-list", path: "/admin/users", label: "User List", icon: "👥" },
             ],
           },
         ]}
         activeItem={activeTab}
-        onItemClick={setActiveTab}
+        onItemClick={(id) => {
+          if (id === "user-list") {
+            navigate("/admin/users");
+          } else {
+            setActiveTab(id);
+          }
+        }}
         onLogout={logout}
         useNavLink={false}
       />
@@ -311,10 +290,9 @@ export default function AdminUsers() {
         search={search}
         setSearch={setSearch}
         onRefresh={() => {
-          load();
           loadProjects();
         }}
-        loading={loading || projectsLoading}
+        loading={projectsLoading}
         title="Administration"
         searchPlaceholder="Search..."
       />
@@ -337,193 +315,136 @@ export default function AdminUsers() {
             </div>
           )}
 
-          {/* ==================== USERS TAB ==================== */}
-          {activeTab === "users" && (
+          {/* ==================== DASHBOARD TAB ==================== */}
+          {(activeTab === "dashboard" || activeTab === "create-user") && (
             <>
-              {/* Page Header with stats */}
-              <div className="au-page-header">
-                <div>
-                  <h1>User Management</h1>
-                  <p>Create, search and manage user accounts</p>
-                </div>
-                <div className="au-header-stats">
-                  <div className="au-mini-stat">
-                    <div className="au-stat-icon purple">{"\uD83D\uDC65"}</div>
-                    <div>
-                      <div className="au-stat-val">{counts.total}</div>
-                      <div style={{fontSize:".75rem",color:"#64748b"}}>Total</div>
-                    </div>
-                  </div>
-                  <div className="au-mini-stat">
-                    <div className="au-stat-icon red">{"\uD83D\uDEE1\uFE0F"}</div>
-                    <div>
-                      <div className="au-stat-val">{counts.admins}</div>
-                      <div style={{fontSize:".75rem",color:"#64748b"}}>Admins</div>
-                    </div>
-                  </div>
-                  <div className="au-mini-stat">
-                    <div className="au-stat-icon green">{"\uD83D\uDCBC"}</div>
-                    <div>
-                      <div className="au-stat-val">{counts.managers}</div>
-                      <div style={{fontSize:".75rem",color:"#64748b"}}>Managers</div>
-                    </div>
-                  </div>
-                  <div className="au-mini-stat">
-                    <div className="au-stat-icon blue">{"\uD83D\uDC64"}</div>
-                    <div>
-                      <div className="au-stat-val">{counts.employees}</div>
-                      <div style={{fontSize:".75rem",color:"#64748b"}}>Employees</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              <div className="au-grid">
-                {/* ---- Create User Card ---- */}
-                <div className="au-card">
-                  <div className="au-card-header">
-                    <div className="au-card-header-icon">+</div>
+              {activeTab === "dashboard" && (
+                <>
+                  <div className="au-page-header">
                     <div>
-                      <h2>New User</h2>
-                      <p>Fill in the form below</p>
+                      <h1>Dashboard</h1>
+                      <p>Platform overview</p>
                     </div>
                   </div>
-                  <div className="au-card-body">
-                    <form onSubmit={handleSubmit} className="au-form">
-                      <div className="au-form-row">
-                        <div className="au-field">
-                          <label>First Name</label>
-                          <input required value={form.prenom} onChange={(e) => setForm({...form, prenom: e.target.value})} placeholder="John" />
-                        </div>
-                        <div className="au-field">
-                          <label>Last Name</label>
-                          <input required value={form.nom} onChange={(e) => setForm({...form, nom: e.target.value})} placeholder="Doe" />
-                        </div>
-                      </div>
-                      <div className="au-field">
-                        <label>Email</label>
-                        <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="jean.dupont@email.com" />
-                      </div>
-                      <div className="au-form-row">
-                        <div className="au-field">
-                          <label>Password</label>
-                          <input type="password" required value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} placeholder="********" />
-                        </div>
-                        <div className="au-field">
-                          <label>Role</label>
-                          <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})}>
-                            {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                        </div>
-                      </div>
-                      <button type="submit" className="au-submit-btn">
-                        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                        Create User
-                      </button>
-                    </form>
-                  </div>
-                </div>
-
-                {/* ---- Users Table Card ---- */}
-                <div className="au-card">
-                  <div className="au-table-toolbar">
-                    <div className="au-table-search">
-                      <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5"/><path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                      <input placeholder="Search users..." value={tableSearch} onChange={(e) => setTableSearch(e.target.value)} />
+                  <div className="au-dashboard">
+                    <div className="au-dash-card">
+                      <div className="au-dash-icon purple">{"\uD83D\uDC65"}</div>
+                      <span className="au-dash-val">{counts.total}</span>
+                      <span className="au-dash-label">Total Users</span>
                     </div>
-                    <span className="au-table-count"><strong>{filteredUsers.length}</strong> user{filteredUsers.length !== 1 ? "s" : ""}</span>
+                    <div className="au-dash-card">
+                      <div className="au-dash-icon red">{"\uD83D\uDEE1\uFE0F"}</div>
+                      <span className="au-dash-val">{counts.admins}</span>
+                      <span className="au-dash-label">Administrators</span>
+                    </div>
+                    <div className="au-dash-card">
+                      <div className="au-dash-icon green">{"\uD83D\uDCBC"}</div>
+                      <span className="au-dash-val">{counts.managers}</span>
+                      <span className="au-dash-label">Managers</span>
+                    </div>
+                    <div className="au-dash-card">
+                      <div className="au-dash-icon blue">{"\uD83D\uDC64"}</div>
+                      <span className="au-dash-val">{counts.employees}</span>
+                      <span className="au-dash-label">Employees</span>
+                    </div>
                   </div>
 
-                  {loading ? (
-                    <div className="au-loading"><div className="au-spinner" /> Loading...</div>
-                  ) : filteredUsers.length === 0 ? (
-                    <div className="au-empty">
-                      <svg width="48" height="48" fill="none" viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4"/><path d="M18 28c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#94a3b8" strokeWidth="1.8" strokeLinecap="round"/><circle cx="20" cy="21" r="1.5" fill="#94a3b8"/><circle cx="28" cy="21" r="1.5" fill="#94a3b8"/></svg>
-                      <h3>No users found</h3>
-                      <p>Try a different search term.</p>
-                    </div>
-                  ) : (
+                  {/* --- Tableau des managers et nombre de projets --- */}
+                  <div className="au-card" style={{ marginTop: 32 }}>
+                    <h2 style={{ marginBottom: 12 }}>Managers & Nombre de Projets</h2>
                     <table className="au-table">
                       <thead>
                         <tr>
-                          <th>User</th>
-                          <th>Role</th>
-                          <th>ID</th>
-                          <th style={{textAlign:"right"}}>Actions</th>
+                          <th>Manager</th>
+                          <th>Email</th>
+                          <th>Nombre de projets</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredUsers.map((u) => {
-                          const rc = getRoleClass(u.role);
-                          return (
-                            <tr key={u.id}>
-                              <td>
-                                <div className="au-user-cell">
-                                  <div className={`au-avatar av-${rc}`}>{getInitials(u.prenom, u.nom)}</div>
-                                  <div className="au-user-info">
-                                    <span className="au-user-name">{u.prenom} {u.nom}</span>
-                                    <span className="au-user-email">{u.email}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>
-                                <span className={`au-role r-${rc}`}>
-                                  {u.role ? u.role.replace("ROLE_", "") : "?"}
-                                </span>
-                              </td>
-                              <td style={{color:"#94a3b8",fontWeight:500}}>#{u.id}</td>
-                              <td>
-                                <div className="au-actions" style={{justifyContent:"flex-end"}}>
-                                  <button className="au-btn-icon edit" title="Edit" onClick={() => openEdit(u)}>
-                                    <span role="img" style={{fontSize:"15px",lineHeight:1}}>✏️</span>
-                                  </button>
-                                  <button className="au-btn-icon danger" title="Delete" onClick={() => setDeleteTarget(u)}>
-                                    <span role="img" style={{fontSize:"15px",lineHeight:1}}>🗑️</span>
-                                  </button>
-                                </div>
-                              </td>
+                        {managerProjectCounts.length === 0 ? (
+                          <tr><td colSpan={3} style={{ textAlign: "center" }}>Aucun manager</td></tr>
+                        ) : (
+                          managerProjectCounts.map((m) => (
+                            <tr key={m.email}>
+                              <td>{m.fullName}</td>
+                              <td>{m.email}</td>
+                              <td><b>{m.count}</b></td>
                             </tr>
-                          );
-                        })}
+                          ))
+                        )}
                       </tbody>
                     </table>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+                  </div>
+                </>
+              )}
 
-          {/* ==================== DASHBOARD TAB ==================== */}
-          {activeTab === "dashboard" && (
-            <>
-              <div className="au-page-header">
-                <div>
-                  <h1>Dashboard</h1>
-                  <p>Platform overview</p>
-                </div>
-              </div>
-              <div className="au-dashboard">
-                <div className="au-dash-card">
-                  <div className="au-dash-icon purple">{"\uD83D\uDC65"}</div>
-                  <span className="au-dash-val">{counts.total}</span>
-                  <span className="au-dash-label">Total Users</span>
-                </div>
-                <div className="au-dash-card">
-                  <div className="au-dash-icon red">{"\uD83D\uDEE1\uFE0F"}</div>
-                  <span className="au-dash-val">{counts.admins}</span>
-                  <span className="au-dash-label">Administrators</span>
-                </div>
-                <div className="au-dash-card">
-                  <div className="au-dash-icon green">{"\uD83D\uDCBC"}</div>
-                  <span className="au-dash-val">{counts.managers}</span>
-                  <span className="au-dash-label">Managers</span>
-                </div>
-                <div className="au-dash-card">
-                  <div className="au-dash-icon blue">{"\uD83D\uDC64"}</div>
-                  <span className="au-dash-val">{counts.employees}</span>
-                  <span className="au-dash-label">Employees</span>
-                </div>
-              </div>
+              {activeTab === "create-user" && (
+                <>
+                  <div className="au-page-header">
+                    <div>
+                      <h1>User Management</h1>
+                      <p>Create new user accounts</p>
+                    </div>
+                  </div>
+
+                  <div className="au-grid">
+                    {/* ---- Create User Card ---- */}
+                    <div className="au-card">
+                      <div className="au-card-header">
+                        <div className="au-card-header-icon">+</div>
+                        <div>
+                          <h2>New User</h2>
+                          <p>Fill in the form below</p>
+                        </div>
+                      </div>
+                      <div className="au-card-body">
+                        <form onSubmit={handleSubmit} className="au-form">
+                          <div className="au-form-row">
+                            <div className="au-field">
+                              <label>First Name</label>
+                              <input required value={form.prenom} onChange={(e) => setForm({...form, prenom: e.target.value})} placeholder="John" />
+                            </div>
+                            <div className="au-field">
+                              <label>Last Name</label>
+                              <input required value={form.nom} onChange={(e) => setForm({...form, nom: e.target.value})} placeholder="Doe" />
+                            </div>
+                          </div>
+                          <div className="au-field">
+                            <label>Email</label>
+                            <input type="email" required value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} placeholder="jean.dupont@email.com" />
+                          </div>
+                          <div className="au-form-row">
+                            <div className="au-field">
+                              <label>Password</label>
+                              <input type="password" required value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} placeholder="********" />
+                            </div>
+                            <div className="au-field">
+                              <label>Role</label>
+                              <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})}>
+                                {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="au-field">
+                            <label>Current Role (Métier)</label>
+                            <select value={form.current_role} onChange={e => setForm({ ...form, current_role: e.target.value })} required>
+                              <option value="">Select current role</option>
+                              {AVAILABLE_ROLES.map((role) => (
+                                <option key={role} value={role}>{role}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <button type="submit" className="au-submit-btn">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            Create User
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -555,6 +476,13 @@ export default function AdminUsers() {
                     <div className="au-stat-copy">
                       <div className="au-stat-val">{projectCounts.inProgress}</div>
                       <div className="au-stat-subtext">In progress</div>
+                    </div>
+                  </div>
+                  <div className="au-mini-stat">
+                    <div className="au-stat-icon orange">📝</div>
+                    <div className="au-stat-copy">
+                      <div className="au-stat-val">{projectCounts.todo}</div>
+                      <div className="au-stat-subtext">To Do</div>
                     </div>
                   </div>
                   <div className="au-mini-stat">
@@ -631,7 +559,8 @@ export default function AdminUsers() {
                               <td>
                                 <div className="au-project-scope">
                                   <span>{project.requiredSkills?.length || 0} skills</span>
-                                  <span>{project.count || 0} people</span>
+                                  <span>{Array.isArray(project.categoryRequirements) ? project.categoryRequirements.length : 0} requirements</span>
+                                  <span>{Array.isArray(project.teamMembers) ? project.teamMembers.length : Array.isArray(project.teamAssigned) ? project.teamAssigned.length : 0} members</span>
                                 </div>
                               </td>
                               <td>
@@ -664,69 +593,6 @@ export default function AdminUsers() {
       </main>
 
       {/* ===== Delete Confirmation Modal ===== */}
-      {deleteTarget && (
-        <div className="au-modal-overlay" onClick={() => setDeleteTarget(null)}>
-          <div className="au-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="au-modal-icon">
-              <svg width="28" height="28" fill="none" viewBox="0 0 28 28"><path d="M4 8h20M9.33 8V5.33A2.67 2.67 0 0112 2.67h4a2.67 2.67 0 012.67 2.66V8m4 0v16a2.67 2.67 0 01-2.67 2.67H8a2.67 2.67 0 01-2.67-2.67V8H22.67z" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <h3>Delete this user?</h3>
-            <p>You are about to delete the account of</p>
-            <p className="au-modal-user">{deleteTarget.prenom} {deleteTarget.nom} ({deleteTarget.email})</p>
-            <p>This action cannot be undone.</p>
-            <div className="au-modal-actions">
-              <button className="au-modal-cancel" onClick={() => setDeleteTarget(null)}>Cancel</button>
-              <button className="au-modal-delete" onClick={handleDelete}>Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== Edit User Modal ===== */}
-      {editTarget && (
-        <div className="au-modal-overlay" onClick={() => setEditTarget(null)}>
-          <div className="au-modal au-modal-edit" onClick={(e) => e.stopPropagation()}>
-            <div className="au-modal-icon" style={{background:"#eff6ff"}}>
-              <span style={{fontSize:"1.5rem"}}>✏️</span>
-            </div>
-            <h3>Edit User</h3>
-            <p style={{marginBottom:"16px"}}>{editTarget.prenom} {editTarget.nom}</p>
-            <form onSubmit={handleEdit} className="au-form" style={{textAlign:"left"}}>
-              <div className="au-form-row">
-                <div className="au-field">
-                  <label>First Name</label>
-                  <input required value={editForm.prenom} onChange={(e) => setEditForm({...editForm, prenom: e.target.value})} />
-                </div>
-                <div className="au-field">
-                  <label>Last Name</label>
-                  <input required value={editForm.nom} onChange={(e) => setEditForm({...editForm, nom: e.target.value})} />
-                </div>
-              </div>
-              <div className="au-field">
-                <label>Email</label>
-                <input type="email" required value={editForm.email} onChange={(e) => setEditForm({...editForm, email: e.target.value})} />
-              </div>
-              <div className="au-form-row">
-                <div className="au-field">
-                  <label>New Password</label>
-                  <input type="password" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} placeholder="Leave blank to keep current" />
-                </div>
-                <div className="au-field">
-                  <label>Role</label>
-                  <select value={editForm.role} onChange={(e) => setEditForm({...editForm, role: e.target.value})}>
-                    {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="au-modal-actions">
-                <button type="button" className="au-modal-cancel" onClick={() => setEditTarget(null)}>Cancel</button>
-                <button type="submit" className="au-modal-save">Save Changes</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {projectDeleteTarget && (
         <div className="au-modal-overlay" onClick={() => setProjectDeleteTarget(null)}>
           <div className="au-modal" onClick={(e) => e.stopPropagation()}>

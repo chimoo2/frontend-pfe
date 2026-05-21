@@ -1,7 +1,22 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../api/apiClient";
 import { useAuth } from "../../context/AuthContext";
 import "./Overview.css";
+
+const AVAILABLE_ROLES = [
+	'Junior Developer', 'Developer', 'Senior Developer', 'Tech Lead', 'Architect',
+	'Junior QA Engineer', 'QA Engineer', 'Senior QA Engineer', 'QA Lead', 'QA Manager',
+	'Junior DevOps Engineer', 'DevOps Engineer', 'Senior DevOps Engineer', 'DevOps Lead', 'DevOps Architect',
+	'Data Analyst', 'Senior Data Analyst', 'Data Scientist', 'Data Architect', 'Chief Data Officer',
+	'Junior Data Engineer', 'Data Engineer', 'Senior Data Engineer', 'Data Engineering Lead', 'Data Platform Architect',
+	'ML Engineer', 'Senior ML Engineer', 'ML Architect', 'AI Research Lead', 'Chief AI Officer',
+	'Business Analyst', 'Senior Business Analyst', 'BI Analyst', 'BI Manager', 'BI Director',
+	'Junior Designer', 'Designer', 'Senior Designer', 'Design Lead', 'Creative Director',
+	'Junior Consultant', 'Consultant', 'Senior Consultant', 'Manager', 'Director',
+	'Financial Analyst', 'Senior Financial Analyst', 'Finance Manager', 'Finance Director', 'CFO',
+	'Security Analyst', 'Senior Security Engineer', 'Security Architect', 'Security Manager', 'CISO',
+];
 
 export default function Overview() {
 	const { user } = useAuth();
@@ -12,12 +27,15 @@ export default function Overview() {
 		prenom: "",
 		email: "",
 		phone: "",
-		position: "",
+		currentRole: "",
 		company: ""
 	});
 	const [photoPreview, setPhotoPreview] = useState(null);
 	const [topSkills, setTopSkills] = useState([]);
-	const [skillInput, setSkillInput] = useState({ name: '', level: 'Expert' });
+	const [skillInput, setSkillInput] = useState({ name: '', level: 'Junior' });
+	const [editingSkillId, setEditingSkillId] = useState(null);
+	const [editingSkill, setEditingSkill] = useState({ name: '', level: 'Junior' });
+	const [skillsLoadedKey, setSkillsLoadedKey] = useState(null);
 	const photoInputRef = useRef(null);
 
 	const profileStorageKey = user ? `overviewProfile_${user.id || user.email || 'guest'}` : 'overviewProfile_guest';
@@ -32,7 +50,7 @@ export default function Overview() {
 				prenom: user?.prenom || '',
 				email: user?.email || '',
 				phone: user?.phone || '',
-				position: user?.position || user?.role || '',
+				currentRole: user?.currentRole || '',
 				company: user?.company || ''
 			});
 			return;
@@ -47,7 +65,7 @@ export default function Overview() {
 				prenom: parsed.prenom || '',
 				email: parsed.email || '',
 				phone: parsed.phone || '',
-				position: parsed.position || parsed.role || '',
+				currentRole: parsed.currentRole || '',
 				company: parsed.company || ''
 			});
 		}
@@ -73,20 +91,26 @@ export default function Overview() {
 	}, [photoPreview, photoStorageKey]);
 
 	useEffect(() => {
+		let parsed = [];
 		const saved = localStorage.getItem(skillsStorageKey);
 		if (saved) {
 			try {
-				const parsed = JSON.parse(saved);
-				setTopSkills(Array.isArray(parsed) ? parsed : []);
+				const p = JSON.parse(saved);
+				parsed = Array.isArray(p) ? p : [];
 			} catch (err) {
 				console.error('Error reading skills', err);
 			}
 		}
+		// Both state updates are batched into one render by React 18
+		setTopSkills(parsed);
+		setSkillsLoadedKey(skillsStorageKey);
 	}, [skillsStorageKey]);
 
 	useEffect(() => {
+		// Only write when the loaded key matches the current key (prevents stale-data overwrite)
+		if (skillsLoadedKey !== skillsStorageKey) return;
 		localStorage.setItem(skillsStorageKey, JSON.stringify(topSkills));
-	}, [topSkills, skillsStorageKey]);
+	}, [topSkills, skillsStorageKey, skillsLoadedKey]);
 
 	const handleSkillInputChange = (e) => {
 		const { name, value } = e.target;
@@ -106,7 +130,25 @@ export default function Overview() {
 				level: skillInput.level
 			}
 		]);
-		setSkillInput({ name: '', level: 'Expert' });
+		setSkillInput({ name: '', level: 'Junior' });
+	};
+
+	const startEditSkill = (skill) => {
+		setEditingSkillId(skill.id);
+		setEditingSkill({ name: skill.name, level: skill.level });
+	};
+
+	const cancelEditSkill = () => {
+		setEditingSkillId(null);
+		setEditingSkill({ name: '', level: 'Junior' });
+	};
+
+	const saveEditSkill = (id) => {
+		if (!editingSkill.name.trim()) return;
+		setTopSkills((prev) =>
+			prev.map((s) => s.id === id ? { ...s, name: editingSkill.name.trim(), level: editingSkill.level } : s)
+		);
+		setEditingSkillId(null);
 	};
 
 	const deleteTopSkill = (id) => {
@@ -150,35 +192,52 @@ export default function Overview() {
 			prenom: profile?.prenom || '',
 			email: profile?.email || '',
 			phone: profile?.phone || '',
-			position: profile?.position || profile?.role || '',
+			currentRole: profile?.currentRole || '',
 			company: profile?.company || ''
 		});
 	};
 
-	const saveProfile = () => {
+	const saveProfile = async () => {
 		const updated = {
 			...(profile || {}),
 			nom: form.nom,
 			prenom: form.prenom,
 			email: form.email,
 			phone: form.phone,
-			position: form.position,
+			currentRole: form.currentRole,
 			company: form.company
 		};
 		setProfile(updated);
 		setForm(updated);
 		localStorage.setItem(profileStorageKey, JSON.stringify(updated));
 		setEditMode(false);
+		// Sauvegarde côté backend si connecté
+		try {
+			await apiClient('/profile', {
+				method: 'PUT',
+				body: JSON.stringify({
+					prenom: form.prenom,
+					nom: form.nom,
+					email: form.email,
+					currentRole: form.currentRole,
+					phone: form.phone,
+					company: form.company,
+					password: form.password || undefined
+				})
+			});
+		} catch (err) {
+			alert('Erreur lors de la sauvegarde du profil');
+		}
 	};
 
 	const levelColors = {
-		Expert: { bg: '#dcfce7', text: '#166534', border: '#22c55e' },
-		Advanced: { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' },
+		Expert:       { bg: '#dcfce7', text: '#166534', border: '#22c55e' },
+		Senior:       { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' },
 		Intermediate: { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' },
-		Beginner: { bg: '#f1f5f9', text: '#475569', border: '#94a3b8' }
+		Junior:       { bg: '#f1f5f9', text: '#475569', border: '#94a3b8' }
 	};
 
-	const levelPercent = { Expert: 100, Advanced: 75, Intermediate: 50, Beginner: 25 };
+	const levelPercent = { Expert: 100, Senior: 75, Intermediate: 50, Junior: 25 };
 
 	return (
 		<div className="ov-container">
@@ -219,7 +278,7 @@ export default function Overview() {
 					<h1 className="ov-name">{form.prenom || 'Your'} {form.nom || 'Name'}</h1>
 					<span className="ov-role-chip">
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-						{form.position || 'Professional'}
+						{form.currentRole || 'Professional'}
 					</span>
 					{form.email && (
 						<span className="ov-contact-chip">
@@ -259,14 +318,26 @@ export default function Overview() {
 						{ label: 'First Name', name: 'prenom', type: 'text', icon: '🧑' },
 						{ label: 'Email', name: 'email', type: 'email', icon: '✉️' },
 						{ label: 'Phone', name: 'phone', type: 'tel', icon: '📱' },
-						{ label: 'Current Role', name: 'position', type: 'text', icon: '💼' },
+						{ label: 'Current Role', name: 'currentRole', type: 'select', icon: '💼' },
 					].map((field) => (
 						<div className="ov-field" key={field.name}>
 							<label className="ov-field-label">
 								<span className="ov-field-icon">{field.icon}</span>
 								{field.label}
 							</label>
-							{editMode ? (
+							{editMode && field.name === 'currentRole' ? (
+								<select
+									name="currentRole"
+									value={form.currentRole}
+									onChange={handleInputChange}
+									className="ov-field-input"
+								>
+									<option value="">Select current role</option>
+									{AVAILABLE_ROLES.map((role) => (
+										<option key={role} value={role}>{role}</option>
+									))}
+								</select>
+							) : editMode ? (
 								<input
 									name={field.name}
 									type={field.type}
@@ -306,10 +377,10 @@ export default function Overview() {
 							onChange={handleSkillInputChange}
 							className="ov-field-input ov-select"
 						>
-							<option>Expert</option>
-							<option>Advanced</option>
+							<option>Junior</option>
 							<option>Intermediate</option>
-							<option>Beginner</option>
+							<option>Senior</option>
+							<option>Expert</option>
 						</select>
 						<button className="ov-btn-add" type="button" onClick={addTopSkill}>
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -321,31 +392,63 @@ export default function Overview() {
 				{topSkills.length > 0 ? (
 					<div className="ov-skills-list">
 						{topSkills.map((skill, index) => {
-							const colors = levelColors[skill.level] || levelColors.Beginner;
+							const colors = levelColors[skill.level] || levelColors.Junior;
 							const pct = levelPercent[skill.level] || 25;
+							const isEditing = editingSkillId === skill.id;
 							return (
 								<div className="ov-skill-item" key={skill.id}>
 									<div className="ov-skill-rank">#{index + 1}</div>
 									<div className="ov-skill-info">
-										<div className="ov-skill-top">
-											<span className="ov-skill-name">{skill.name}</span>
-											<span
-												className="ov-skill-level"
-												style={{ background: colors.bg, color: colors.text, borderColor: colors.border }}
-											>
-												{skill.level}
-											</span>
-										</div>
-										<div className="ov-skill-bar-track">
-											<div
-												className="ov-skill-bar-fill"
-												style={{ width: `${pct}%`, background: colors.border }}
-											/>
-										</div>
+										{isEditing ? (
+											<div className="ov-skill-edit-row">
+												<input
+													type="text"
+													value={editingSkill.name}
+													onChange={(e) => setEditingSkill((p) => ({ ...p, name: e.target.value }))}
+													className="ov-field-input"
+													autoFocus
+												/>
+												<select
+													value={editingSkill.level}
+													onChange={(e) => setEditingSkill((p) => ({ ...p, level: e.target.value }))}
+													className="ov-field-input ov-select"
+												>
+													<option>Junior</option>
+													<option>Intermediate</option>
+													<option>Senior</option>
+													<option>Expert</option>
+												</select>
+												<button className="ov-btn-save" type="button" onClick={() => saveEditSkill(skill.id)} title="Save">
+													<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+												</button>
+												<button className="ov-btn-cancel" type="button" onClick={cancelEditSkill} title="Cancel">
+													<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+												</button>
+											</div>
+										) : (
+											<>
+												<div className="ov-skill-top">
+													<span className="ov-skill-name">{skill.name}</span>
+													<span className="ov-skill-level" style={{ background: colors.bg, color: colors.text, borderColor: colors.border }}>
+														{skill.level}
+													</span>
+												</div>
+												<div className="ov-skill-bar-track">
+													<div className="ov-skill-bar-fill" style={{ width: `${pct}%`, background: colors.border }} />
+												</div>
+											</>
+										)}
 									</div>
-									<button className="ov-skill-delete" type="button" onClick={() => deleteTopSkill(skill.id)} title="Remove skill">
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-									</button>
+									{!isEditing && (
+										<>
+											<button className="ov-skill-edit-btn" type="button" onClick={() => startEditSkill(skill)} title="Edit skill">
+												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+											</button>
+											<button className="ov-skill-delete" type="button" onClick={() => deleteTopSkill(skill.id)} title="Remove skill">
+												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+											</button>
+										</>
+									)}
 								</div>
 							);
 						})}

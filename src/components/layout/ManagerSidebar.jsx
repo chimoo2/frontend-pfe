@@ -32,10 +32,10 @@ export default function ManagerSidebar() {
         <p className="section-title">Navigation</p>
         <ul>
           {[
-            { label: "Mes Projets", path: "/manager/projects", icon: "📁", key: "projects" },
-            { label: "Créer Projet", path: "/manager/projects/new", icon: "➕", key: "create" },
-            { label: "Matching Kanban", path: "/manager/matching", icon: "🤝", key: "matching" },
-            { label: "Statistiques", path: "/manager/stats", icon: "📊", key: "stats" }
+            { label: "My Projects", path: "/manager/projects", icon: "📁", key: "projects" },
+            { label: "Create Project", path: "/manager/projects/new", icon: "➕", key: "create" },
+            { label: "Matching Board", path: "/manager/matching", icon: "🤝", key: "matching" },
+          
           ].map(item => (
             <li key={item.key}>
               <NavLink to={item.path} className={({ isActive }) => isActive ? "active" : ""}>
@@ -66,19 +66,19 @@ export default function ManagerSidebar() {
       </div>
     </aside>
 
-    {/* Toggle Button - Always visible on the right */}
+    {/* Toggle Button - Premium Modern Design */}
     <button
       className={`sidebar-toggle ${isOpen ? "open" : "closed"}`}
       onClick={toggleSidebar}
-      aria-label="Toggle sidebar"
+      aria-label={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
       aria-expanded={isOpen}
       title={isOpen ? "Fermer le menu" : "Ouvrir le menu"}
     >
-      <svg className="toggle-icon" width="18" height="14" viewBox="0 0 18 14" aria-hidden="true">
-        <rect className="r1" x="0" y="0" width="18" height="2" rx="1" />
-        <rect className="r2" x="0" y="6" width="18" height="2" rx="1" />
-        <rect className="r3" x="0" y="12" width="18" height="2" rx="1" />
-      </svg>
+      <div className="hamburger">
+        <span className="line line-1"></span>
+        <span className="line line-2"></span>
+        <span className="line line-3"></span>
+      </div>
     </button>
     </>
   );

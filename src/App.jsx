@@ -18,14 +18,17 @@ import Matching from "./pages/manager/Matching";
 import MatchingKanban from "./pages/manager/MatchingKanban";
 import CourseRecommendations from "./pages/manager/CourseRecommendations";
 import AdminUsers from "./pages/admin/AdminUsers";
+import UserList from "./pages/admin/UserList";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ChangePassword from "./pages/ChangePassword";
 import AdminRoute from "./components/AdminRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ManagerSidebar from "./components/layout/ManagerSidebar";
 import Topbar from "./components/layout/Topbar";
 import { SidebarProvider, useSidebar } from "./context/SidebarContext";
 import { useAuth } from "./context/AuthContext";
+import { UsersProvider } from "./context/UsersContext";
 import { Outlet, useLocation } from "react-router-dom";
 
 function Home() {
@@ -59,6 +62,7 @@ function HeaderRenderer() {
 function ManagerLayout() {
   const { isOpen, toggleSidebar } = useSidebar();
   const { user, logout } = useAuth();
+  const [search, setSearch] = React.useState('');
 
   const userName = user ? `${user.prenom || ''} ${user.nom || ''}`.trim() : '';
 
@@ -72,6 +76,8 @@ function ManagerLayout() {
         userRole="Manager"
         onLogout={logout}
         searchPlaceholder="Search projects, employees..."
+        search={search}
+        setSearch={setSearch}
       />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <ManagerSidebar />
@@ -85,7 +91,7 @@ function ManagerLayout() {
             transition: "margin-left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
           }}
         >
-          <Outlet />
+          <Outlet context={{ search }} />
         </main>
       </div>
     </div>
@@ -102,6 +108,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/change-password" element={<ChangePassword />} />
         <Route path="/profile" element={
           <div style={{display: 'flex', flexDirection: 'column', minHeight: '100vh'}}>
             {/* Header déjà rendu par HeaderRenderer */}
@@ -135,9 +142,22 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <AdminRoute>
-              <AdminUsers />
-            </AdminRoute>
+            <UsersProvider>
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
+            </UsersProvider>
+          }
+        />
+
+        <Route
+          path="/admin/users"
+          element={
+            <UsersProvider>
+              <AdminRoute>
+                <UserList />
+              </AdminRoute>
+            </UsersProvider>
           }
         />
 

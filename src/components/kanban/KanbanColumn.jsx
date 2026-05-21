@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import AddCardModal from './AddCardModal';
 import KanbanCard from './KanbanCard';
 
-export default function KanbanColumn({ name, color, icon, cards = [], onAdd, onCardClick, hideAdd = false, isMatching = false }) {
+export default function KanbanColumn({ name, color, icon, cards = [], onAdd, onCardClick, onAssignClick, hideAdd = false, isMatching = false }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -38,7 +38,7 @@ export default function KanbanColumn({ name, color, icon, cards = [], onAdd, onC
           </div>
         ) : (
           cards.map(c => (
-            <KanbanCard key={c.id} {...c} accentColor={color} onClick={() => onCardClick && onCardClick(c)} />
+            <KanbanCard key={c.id} {...c} accentColor={color} onClick={() => onCardClick && onCardClick(c)} onAssign={onAssignClick ? () => onAssignClick(c) : undefined} />
           ))
         )}
       </div>

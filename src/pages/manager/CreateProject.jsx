@@ -55,11 +55,9 @@ export default function CreateProject() {
       <div className="cp-container">
         {/* Page Header */}
         <div className="cp-page-header">
-          <h1 className="cp-page-title">Créer un projet</h1>
+          <h1 className="cp-page-title">Create Project</h1>
           <div className="cp-page-accent" />
-          <p className="cp-page-desc">
-            Remplissez le formulaire ci-dessous pour ajouter un nouveau projet. Toutes les informations peuvent être modifiées plus tard.
-          </p>
+          
         </div>
 
         {/* Grid: Form + Preview */}
@@ -77,11 +75,11 @@ export default function CreateProject() {
             <div className="cp-preview-card">
               <div className="cp-preview-header">
                 <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><path d="M2 4.5A1.5 1.5 0 013.5 3h11A1.5 1.5 0 0116 4.5v9a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 012 13.5v-9z" stroke="#6366f1" strokeWidth="1.4"/><path d="M5 7.5h8M5 10.5h5" stroke="#6366f1" strokeWidth="1.3" strokeLinecap="round"/></svg>
-                <h3 className="cp-preview-title">Aperçu</h3>
+                <h3 className="cp-preview-title">Preview</h3>
               </div>
               <div className="cp-preview-body">
                 <div className="cp-preview-field">
-                  <span className="cp-preview-label">Nom</span>
+                  <span className="cp-preview-label">Name</span>
                   <span className="cp-preview-value">{projectData.name || '—'}</span>
                 </div>
                 <div className="cp-preview-divider" />
@@ -91,7 +89,7 @@ export default function CreateProject() {
                 </div>
                 <div className="cp-preview-divider" />
                 <div className="cp-preview-field">
-                  <span className="cp-preview-label">Statut</span>
+                  <span className="cp-preview-label">Status</span>
                   {projectData.status ? (
                     <span className="cp-preview-status" style={{ color: statusColors[projectData.status] || '#64748b', background: `${statusColors[projectData.status] || '#64748b'}15` }}>
                       <span className="cp-preview-status-dot" style={{ background: statusColors[projectData.status] || '#64748b' }} />
@@ -103,7 +101,7 @@ export default function CreateProject() {
                 </div>
                 <div className="cp-preview-divider" />
                 <div className="cp-preview-field">
-                  <span className="cp-preview-label">Compétences requises</span>
+                  <span className="cp-preview-label">Required skills</span>
                   <span className="cp-preview-value">
                     {(projectData.skillsNeeded || []).map(s => s.skill || s.skillName || '').filter(Boolean).join(', ') || '—'}
                   </span>
@@ -112,7 +110,7 @@ export default function CreateProject() {
                 <div className="cp-preview-stats">
                   <div className="cp-preview-stat">
                     <span className="cp-preview-stat-val">{projectData.count || '—'}</span>
-                    <span className="cp-preview-stat-label">Personnes</span>
+                    <span className="cp-preview-stat-label">People</span>
                   </div>
                   <div className="cp-preview-stat">
                     <span className="cp-preview-stat-val">{(projectData.skillsNeeded || []).length}</span>
@@ -120,7 +118,7 @@ export default function CreateProject() {
                   </div>
                   <div className="cp-preview-stat">
                     <span className="cp-preview-stat-val">{(projectData.categoryRequirements || []).length}</span>
-                    <span className="cp-preview-stat-label">Catégories</span>
+                    <span className="cp-preview-stat-label">Categories</span>
                   </div>
                 </div>
               </div>

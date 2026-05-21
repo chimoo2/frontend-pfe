@@ -24,9 +24,23 @@ export default function ManagerDashboard() {
         const monthly = {};
         list.forEach(p => {
           const st = (p.status || '').toLowerCase();
-          if (st.includes('progress')) counts.inprogress++;
-          else if (st.includes('complete') || st.includes('done')) counts.completed++;
-          else counts.todo++;
+          if (st.includes('progress')) {
+            counts.inprogress++;
+          } else if (st.includes('complete') || st.includes('done')) {
+            counts.completed++;
+          } else if (
+            st === 'to do' ||
+            st === 'todo' ||
+            st === 'to-do' ||
+            st === 'à faire' ||
+            st === 'not started' ||
+            st === 'en attente'
+          ) {
+            counts.todo++;
+          } else {
+            // Par défaut, tout statut inconnu est "To Do"
+            counts.todo++;
+          }
           if (p.endDate) {
             const end = new Date(p.endDate);
             if (end < today && !st.includes('complete')) counts.overdue++;
@@ -183,11 +197,11 @@ export default function ManagerDashboard() {
 
         <div className="md-stat-card md-stat-red">
           <div className="md-stat-icon">
-            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.8"/><path d="M8 12h8M8 8h5M8 16h3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
           </div>
           <div className="md-stat-info">
-            <span className="md-stat-label">Overdue</span>
-            <span className="md-stat-value">{stats.overdue}</span>
+            <span className="md-stat-label">To Do</span>
+            <span className="md-stat-value">{stats.todo}</span>
           </div>
           {stats.dueSoon > 0 && <div className="md-stat-warn">{stats.dueSoon} due soon</div>}
         </div>

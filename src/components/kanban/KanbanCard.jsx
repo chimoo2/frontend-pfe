@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function KanbanCard({ title, name, label, status, description, skillsNeeded = [], categoryRequirements = [], startDate, duration, onClick, accentColor }) {
+export default function KanbanCard({ title, name, label, status, description, skillsNeeded = [], categoryRequirements = [], startDate, duration, onClick, accentColor, onAssign }) {
   const displayTitle = title || name;
   const displayLabel = label || status;
 
@@ -57,9 +57,21 @@ export default function KanbanCard({ title, name, label, status, description, sk
               </span>
             )}
           </div>
-          {categoryRequirements.length > 0 && (
-            <span className="kc-cat-count">{categoryRequirements.length} cat.</span>
-          )}
+          <div className="kc-card-footer-right">
+            {categoryRequirements.length > 0 && (
+              <span className="kc-cat-count">{categoryRequirements.length} cat.</span>
+            )}
+            {onAssign && (
+              <button
+                className="kc-assign-btn"
+                onClick={(e) => { e.stopPropagation(); onAssign(); }}
+                title="Assign Employee"
+              >
+                <svg width="12" height="12" fill="none" viewBox="0 0 12 12"><circle cx="5" cy="4" r="2.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1 10c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><path d="M9 7.5v3M7.5 9h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                Assign
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

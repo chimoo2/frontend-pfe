@@ -11,10 +11,7 @@ export default function Hero1() {
           <p className="eyebrow">Talent intelligence powered by AI</p>
           <h1>Build the Right Career. Power the Right <span className="highlight">Teams</span></h1>
           <p className="hero-copy">An AI-powered platform for skills analysis, career recommendation, and workforce optimization.</p>
-          <div className="hero-actions">
-            <a href="#hero2" className="cta">Learn More</a>
-            <a href="#hero3" className="cta secondary">See Features</a>
-          </div>
+          
         </div>
 
         <div className="hero-right" aria-hidden="true">

@@ -403,6 +403,41 @@
   background: #fee2e2;
   color: #dc2626;
 }
+.ov-skill-edit-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .18s;
+  flex-shrink: 0;
+}
+.ov-skill-edit-btn:hover {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.ov-skill-edit-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.ov-skill-edit-row .ov-field-input {
+  flex: 1;
+  min-width: 100px;
+  font-size: .85rem;
+  padding: .3rem .55rem;
+}
+.ov-skill-edit-row .ov-select {
+  flex: 0 0 auto;
+  width: 130px;
+}
 
 /* Empty state */
 .ov-empty {

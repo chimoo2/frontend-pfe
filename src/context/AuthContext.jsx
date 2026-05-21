@@ -36,6 +36,12 @@ export function AuthProvider({ children }) {
       const expiresAt = Date.now() + Number(data.expiresIn || 0);
       localStorage.setItem('authTokenExpiresAt', String(expiresAt));
     }
+
+    // First-login: force password change before fetching the full user profile
+    if (data?.forcePasswordChange) {
+      return { forcePasswordChange: true };
+    }
+
     try {
       const u = await apiClient('/auth/me');
       setUser(u);

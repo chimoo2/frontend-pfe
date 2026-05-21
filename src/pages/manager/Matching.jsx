@@ -175,27 +175,27 @@ export default function Matching({ projectIdProp, embedded }) {
   const content = (
     <Box sx={{ flex: 1, p: embedded ? 2 : 4 }}>
           <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, color: '#1a237e' }}>
-            Matching des candidats{project ? ` pour "${project.name}"` : ''}
+            Candidate Matching{project ? ` for "${project.name}"` : ''}
           </Typography>
 
           <Typography variant="body2" sx={{ mb: 3, color: '#555', lineHeight: 1.6 }}>
-            Le tableau ci-dessous classe les employes selon le score renvoyé par le
-            service de matching. Pour un test clair, utilisez un projet avec des
-            exigences précises telles que Python, FastAPI et Machine Learning :
-            le candidat David Engels doit alors ressortir comme meilleur match.
+            The table below ranks employees according to the score returned by the
+            matching service. For a clear test, use a project with precise
+            requirements such as Python, FastAPI and Machine Learning: the
+            candidate David Engels should then stand out as the best match.
           </Typography>
 
           {project && project.requirements && project.requirements.length > 0 && (
             <Box sx={{ mb: 3, p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#1976d2', mb: 1 }}>
-                Exigences du projet ({project.requirements.length})
+                Project Requirements ({project.requirements.length})
               </Typography>
               <ul style={{ margin: 0, paddingLeft: 20, color: '#1976d2' }}>
                 {project.requirements.map((r, idx) => {
                   const label = formatRequirementLabel(r);
                   return (
                     <li key={idx} style={{ marginBottom: 4 }}>
-                      {label || <em>Non spécifiée</em>}
+                      {label || <em>Not specified</em>}
                     </li>
                   );
                 })}
@@ -205,7 +205,7 @@ export default function Matching({ projectIdProp, embedded }) {
 
           {error && <Typography color="error" sx={{ mb: 2 }}>{error}</Typography>}
 
-          {!matches && <Typography>Chargement en cours...</Typography>}
+          {!matches && <Typography>Loading...</Typography>}
 
           {matches && (
             <Paper sx={{ mt: 3, borderRadius: 2.5, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
@@ -216,7 +216,7 @@ export default function Matching({ projectIdProp, embedded }) {
               )}
               <Box sx={{ p: 3, pb: 2.5, bgcolor: 'rgba(25, 118, 210, 0.05)', borderBottom: '3px solid #1976d2' }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
-                  Total candidats : {matches.totalCandidates || matches.matches?.length || 0}
+                  Total candidates: {matches.totalCandidates || matches.matches?.length || 0}
                 </Typography>
               </Box>
               <Table sx={{ minWidth: 600 }}>
@@ -224,11 +224,9 @@ export default function Matching({ projectIdProp, embedded }) {
                   <TableRow sx={{ bgcolor: '#1976d2' }}>
                     <TableCell align="center" sx={{ width: 50, color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>#</TableCell>
                     <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Assign</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Nom</TableCell>
-                    <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Score global</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Manquantes</TableCell>
-                    <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Formation</TableCell>
-                    <TableCell align="center" sx={{ width: 50, color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Details</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Name</TableCell>
+                    <TableCell align="center" sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Overall Score</TableCell>
+                    <TableCell sx={{ color: 'white', fontWeight: 700, fontSize: '0.95rem', py: 2 }}>Missing Skills</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -252,6 +250,7 @@ export default function Matching({ projectIdProp, embedded }) {
                       <React.Fragment key={idx}>
                         <TableRow
                           hover
+                          onClick={() => toggleRow(idx)}
                           sx={{
                             bgcolor: idx % 2 === 0 ? '#fafafa' : 'white',
                             '&:hover': { bgcolor: '#f0f7ff' },
@@ -262,7 +261,7 @@ export default function Matching({ projectIdProp, embedded }) {
                           <TableCell align="center" sx={{ fontWeight: 700, color: '#1976d2', fontSize: '1.05rem', py: 1.5 }}>
                             {idx + 1}
                           </TableCell>
-                          <TableCell align="center" sx={{ py: 1.5 }}>
+                          <TableCell align="center" sx={{ py: 1.5 }} onClick={(e) => e.stopPropagation()}>
                             <Button
                               variant={isAssigned ? 'contained' : 'outlined'}
                               size="small"
@@ -301,32 +300,9 @@ export default function Matching({ projectIdProp, embedded }) {
                           <TableCell sx={{ maxWidth: 250, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '0.9rem', color: '#555', py: 1.5 }}>
                             {renderMissingSkills(missingSkills)}
                           </TableCell>
-                          <TableCell align="center" sx={{ py: 1.5 }}>
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => viewTrainingPage(m, missingSkills)}
-                              disabled={!training || training.length === 0}
-                              sx={{ textTransform: 'none', color: '#1976d2', borderColor: '#90caf9' }}
-                            >
-                              Voir formation
-                            </Button>
-                          </TableCell>
-                          <TableCell align="center" sx={{ py: 1.5 }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => toggleRow(idx)}
-                              sx={{
-                                color: '#1976d2',
-                                '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.1)' },
-                              }}
-                            >
-                              {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                            </IconButton>
-                          </TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell colSpan={7} sx={{ p: 0 }}>
+                            <TableCell colSpan={5} sx={{ p: 0 }}>
                             <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                               <Box sx={{ p: 3, bgcolor: '#f9fafb', borderTop: '2px solid #e0e0e0' }}>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2, color: '#1976d2', fontSize: '1.05rem' }}>
@@ -370,8 +346,138 @@ export default function Matching({ projectIdProp, embedded }) {
                                     <Typography variant="body2" sx={{ fontWeight: 700, mb: 1, color: '#1976d2' }}>
                                       Exigences du projet:
                                     </Typography>
-                                    <ul style={{ margin: '8px 0', paddingLeft: 24, color: '#555' }}>
-                                      {m.matched_requirements.filter(req => !!(req.requirement || {}).skill_name).map((req, reqIdx) => {
+                                    
+                                    {/* Display detailed requirement explanations if available (includes both named and group requirements) */}
+                                    {m.detailed_requirement_explanations && m.detailed_requirement_explanations.length > 0 ? (
+                                      <Box sx={{ mb: 2 }}>
+                                        {m.detailed_requirement_explanations.map((detailReq, detailIdx) => {
+                                          const reqLabel = detailReq.requirement_label || 'Unknown';
+                                          const reqDetails = detailReq.requirement_details || {};
+                                          const score = detailReq.score != null ? detailReq.score : 0;
+                                          const criticality = detailReq.criticality_weight != null ? Math.round(detailReq.criticality_weight * 5) : 3;
+                                          const expandedSkills = detailReq.taxonomy_expanded_skills || [];
+                                          const employeeMatched = detailReq.employee_matched_skills || [];
+                                          const missing = detailReq.missing_skills || [];
+                                          const matchedByType = detailReq.matched_by_type || {};
+                                          
+                                          const isNamedSkill = !!reqDetails.skill_name;
+                                          const isGroupReq = !isNamedSkill;
+                                          
+                                          return (
+                                            <Paper
+                                              key={detailIdx}
+                                              sx={{
+                                                p: 1.5,
+                                                mb: 1.5,
+                                                bgcolor: isGroupReq ? '#fff3e0' : '#f5f5f5',
+                                                border: isGroupReq ? '2px solid #ff9800' : '1px solid #ccc',
+                                                borderRadius: 1
+                                              }}
+                                            >
+                                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                                <Box>
+                                                  <Typography sx={{ fontWeight: 700, color: isGroupReq ? '#e65100' : '#1976d2', fontSize: '0.95rem' }}>
+                                                    {reqLabel}
+                                                  </Typography>
+                                                  {isGroupReq && (
+                                                    <Typography sx={{ fontSize: '0.8rem', color: '#ff6f00', fontStyle: 'italic' }}>
+                                                      Requirement groupe
+                                                    </Typography>
+                                                  )}
+                                                </Box>
+                                                <Box sx={{ textAlign: 'right' }}>
+                                                  <Typography sx={{ fontWeight: 700, color: score > 0.7 ? '#4caf50' : score > 0.4 ? '#ff9800' : '#f44336', fontSize: '0.95rem' }}>
+                                                    {score.toFixed(2)}
+                                                  </Typography>
+                                                  <Typography sx={{ fontSize: '0.8rem', color: '#666' }}>
+                                                    Crit: {criticality}/5
+                                                  </Typography>
+                                                </Box>
+                                              </Box>
+                                              
+                                              {/* Show expanded taxonomy skills for group requirements */}
+                                              {isGroupReq && expandedSkills.length > 0 && (
+                                                <Box sx={{ mb: 1, pl: 1, borderLeft: '3px solid #ff9800' }}>
+                                                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#666', mb: 0.5 }}>
+                                                    Skills du groupe ({expandedSkills.length}):
+                                                  </Typography>
+                                                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                    {expandedSkills.slice(0, 8).map((skill, i) => (
+                                                      <Chip
+                                                        key={i}
+                                                        label={skill}
+                                                        size="small"
+                                                        variant={employeeMatched.includes(skill) ? 'filled' : 'outlined'}
+                                                        color={employeeMatched.includes(skill) ? 'success' : 'default'}
+                                                        sx={{ height: 20, fontSize: '0.75rem' }}
+                                                      />
+                                                    ))}
+                                                    {expandedSkills.length > 8 && (
+                                                      <Chip
+                                                        label={`+${expandedSkills.length - 8}`}
+                                                        size="small"
+                                                        sx={{ height: 20, fontSize: '0.75rem' }}
+                                                      />
+                                                    )}
+                                                  </Box>
+                                                </Box>
+                                              )}
+                                              
+                                              {/* Show match breakdown */}
+                                              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, fontSize: '0.85rem' }}>
+                                                {matchedByType.direct_matches && matchedByType.direct_matches.length > 0 && (
+                                                  <Box>
+                                                    <Typography sx={{ fontWeight: 600, color: '#4caf50', fontSize: '0.8rem' }}>
+                                                      ✓ Directes ({matchedByType.direct_matches.length}):
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#333', pl: 1 }}>
+                                                      {matchedByType.direct_matches.join(', ')}
+                                                    </Typography>
+                                                  </Box>
+                                                )}
+                                                
+                                                {matchedByType.related_matches && matchedByType.related_matches.length > 0 && (
+                                                  <Box>
+                                                    <Typography sx={{ fontWeight: 600, color: '#ff9800', fontSize: '0.8rem' }}>
+                                                      → Liées ({matchedByType.related_matches.length}):
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#333', pl: 1 }}>
+                                                      {matchedByType.related_matches.join(', ')}
+                                                    </Typography>
+                                                  </Box>
+                                                )}
+                                                
+                                                {matchedByType.semantic_matches && matchedByType.semantic_matches.length > 0 && (
+                                                  <Box>
+                                                    <Typography sx={{ fontWeight: 600, color: '#9c27b0', fontSize: '0.8rem' }}>
+                                                      ≈ Sémantiques ({matchedByType.semantic_matches.length}):
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#333', pl: 1 }}>
+                                                      {matchedByType.semantic_matches.join(', ')}
+                                                    </Typography>
+                                                  </Box>
+                                                )}
+                                                
+                                                {missing && missing.length > 0 && (
+                                                  <Box>
+                                                    <Typography sx={{ fontWeight: 600, color: '#d32f2f', fontSize: '0.8rem' }}>
+                                                      ✗ Manquantes ({missing.length}):
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.75rem', color: '#d32f2f', pl: 1 }}>
+                                                      {missing.slice(0, 3).join(', ')}
+                                                      {missing.length > 3 && ` +${missing.length - 3}`}
+                                                    </Typography>
+                                                  </Box>
+                                                )}
+                                              </Box>
+                                            </Paper>
+                                          );
+                                        })}
+                                      </Box>
+                                    ) : (
+                                      /* Fallback to old display format if detailed_requirement_explanations not available */
+                                      <ul style={{ margin: '8px 0', paddingLeft: 24, color: '#555' }}>
+                                        {m.matched_requirements.filter(req => !!(req.requirement || {}).skill_name).map((req, reqIdx) => {
                                         const r = req.requirement || {};
                                         let label = '';
                                         if (r.skill_name) label = r.skill_name;
@@ -471,6 +577,7 @@ export default function Matching({ projectIdProp, embedded }) {
                                         );
                                       })}
                                     </ul>
+                                    )}
                                   </Box>
                                 )}
                               </Box>

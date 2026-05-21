@@ -5,10 +5,21 @@ import KanbanColumn from '../../components/kanban/KanbanColumn';
 import { getMatchedProjects } from '../../utils/matchingHistory';
 import { getAllProjects } from '../../api/projectApi';
 import Matching from './Matching';
+import { useOutletContext } from 'react-router-dom';
 
 export default function MatchingKanban() {
   const [columns, setColumns] = useState({ todo: [], inprogress: [], completed: [] });
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const { search } = useOutletContext() || {};
+
+  const filterCards = (cards) => {
+    if (!search || !search.trim()) return cards;
+    const q = search.toLowerCase();
+    return cards.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.description || '').toLowerCase().includes(q)
+    );
+  };
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -37,18 +48,18 @@ export default function MatchingKanban() {
     <>
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6, px: 4, bgcolor: '#f3f4f6' }}>
         <Box sx={{ width: '100%', maxWidth: 1320, bgcolor: '#ffffff', borderRadius: 14, p: 4, boxShadow: '0 20px 60px rgba(15,23,42,0.1)' }}>
-          <Typography variant="h4" align="center" sx={{ mb: 4, fontWeight: 700 }}>Tableau de Matching</Typography>
+          <Typography variant="h4" align="center" sx={{ mb: 4, fontWeight: 700 }}>Matching Board</Typography>
           {columns.todo.length === 0 && columns.inprogress.length === 0 && columns.completed.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
-              Aucun projet n'a encore été ouvert pour matching.<br />
-              Utilisez le bouton "Voir Matching" sur un projet pour le rendre visible ici.
+              No projects have been opened for matching yet.<br />
+              Use the "View Matching" button on a project to make it visible here.
             </Box>
           ) : (
             <Box sx={{ display: 'flex', gap: 28, overflowX: 'auto', alignItems: 'flex-start', minHeight: 520 }}>
               <KanbanColumn
                 name="To Do"
                 color="#6366f1"
-                cards={columns.todo}
+                cards={filterCards(columns.todo)}
                 onCardClick={c => setSelectedProjectId(c.id)}
                 hideAdd
                 isMatching
@@ -56,7 +67,7 @@ export default function MatchingKanban() {
               <KanbanColumn
                 name="In Progress"
                 color="#f59e0b"
-                cards={columns.inprogress}
+                cards={filterCards(columns.inprogress)}
                 onCardClick={c => setSelectedProjectId(c.id)}
                 hideAdd
                 isMatching
@@ -64,7 +75,7 @@ export default function MatchingKanban() {
               <KanbanColumn
                 name="Completed"
                 color="#10b981"
-                cards={columns.completed}
+                cards={filterCards(columns.completed)}
                 onCardClick={c => setSelectedProjectId(c.id)}
                 hideAdd
                 isMatching
@@ -81,7 +92,7 @@ export default function MatchingKanban() {
         maxWidth="xl"
       >
         <DialogTitle sx={{ m: 0, p: 2 }}>
-          Détails Matching
+          Matching Details
           <IconButton
             aria-label="close"
             onClick={() => setSelectedProjectId(null)}

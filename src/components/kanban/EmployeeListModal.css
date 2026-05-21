@@ -1,0 +1,332 @@
+.elm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.elm-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.elm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.elm-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 2px;
+}
+
+.elm-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.elm-close {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #9ca3af;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.elm-close:hover {
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.elm-success {
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.elm-loading,
+.elm-error,
+.elm-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.elm-error {
+  color: #dc2626;
+}
+
+.elm-list {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.elm-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  overflow: hidden;
+}
+
+.elm-item:last-child {
+  margin-bottom: 0;
+}
+
+.elm-item:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+}
+
+.elm-item--assigned {
+  border-color: #6ee7b7;
+  background: #f0fdf4;
+}
+
+.elm-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.elm-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.elm-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.elm-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.elm-meta {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.elm-position {
+  font-size: 11px;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 2px;
+  width: fit-content;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.elm-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.elm-toggle-btn {
+  background: #f3f4f6;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 10px;
+  color: #6b7280;
+  transition: background 0.15s;
+}
+
+.elm-toggle-btn:hover {
+  background: #e5e7eb;
+}
+
+.elm-assign-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.elm-assign-btn:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.elm-assign-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.elm-assign-btn--done {
+  background: #059669 !important;
+}
+
+.elm-details {
+  padding: 12px 14px;
+  border-top: 1px solid #f3f4f6;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.elm-skills-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.elm-skills-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.elm-skill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.elm-skill-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3730a3;
+}
+
+.elm-skill-level {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: capitalize;
+}
+
+.elm-skill-level--junior {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.elm-skill-level--intermediate {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.elm-skill-level--senior {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.elm-skill-level--expert {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.elm-skill-years {
+  font-size: 10px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.elm-no-skills {
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.elm-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.elm-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.elm-detail-item--full {
+  grid-column: 1 / -1;
+}
+
+.elm-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.elm-detail-value {
+  font-size: 13px;
+  color: #374151;
+}

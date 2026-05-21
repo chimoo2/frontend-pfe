@@ -6,12 +6,42 @@ import './KanbanBoard.css';
 
 export default function ProjectDetailModal({ open, onClose, project, onSave, onDelete, showMatchingAction = true }) {
   const navigate = useNavigate();
-  const [form, setForm] = React.useState(project || {});
+  const [form, setForm] = React.useState({ skillsNeeded: [], teamAssigned: [], ...project });
   const [activeTab, setActiveTab] = React.useState('info');
+  const [skillsTouched, setSkillsTouched] = React.useState(false);
 
   React.useEffect(() => {
-    setForm(project || {});
+    if (!project) {
+      setForm({ skillsNeeded: [], teamAssigned: [] });
+      setActiveTab('info');
+      setSkillsTouched(false);
+      return;
+    }
+
+    const skillsNeeded = Array.isArray(project.skillsNeeded) && project.skillsNeeded.length > 0
+      ? project.skillsNeeded
+      : Array.isArray(project.requiredSkills)
+        ? project.requiredSkills.map(s => ({
+            skill: s.skillName || s.skill || '',
+            criticality: s.criticality,
+            domain: s.domain,
+            family: s.family,
+            category: s.category,
+            type: s.type
+          }))
+        : [];
+
+    const teamAssigned = project.teamAssigned || project.teamMembers || [];
+
+    setForm({
+      ...project,
+      duration: project.duration || '',
+      count: project.count != null ? project.count : '',
+      skillsNeeded,
+      teamAssigned,
+    });
     setActiveTab('info');
+    setSkillsTouched(false);
   }, [project]);
 
   if (!open || !project) return null;
@@ -24,20 +54,46 @@ export default function ProjectDetailModal({ open, onClose, project, onSave, onD
     const newSkills = [...(form.skillsNeeded || [])];
     newSkills[index] = { ...newSkills[index], [field]: e.target.value };
     setForm(prev => ({ ...prev, skillsNeeded: newSkills }));
+    setSkillsTouched(true);
   };
 
   const addSkill = () => {
     setForm(prev => ({
       ...prev,
       skillsNeeded: [...(prev.skillsNeeded || []),
-        { skill: '', level: 'Intermediate', count: 1, domain: '', family: '', category: '', type: '' }
+        { skill: '', domain: '', family: '', category: '', type: '', criticality: '' }
       ]
     }));
+    setSkillsTouched(true);
   };
 
   const removeSkill = (index) => {
     const newSkills = (form.skillsNeeded || []).filter((_, i) => i !== index);
     setForm(prev => ({ ...prev, skillsNeeded: newSkills }));
+    setSkillsTouched(true);
+  };
+
+  const buildSavePayload = () => {
+    const payload = {
+      ...form,
+      count: form.count !== '' && form.count != null ? Number(form.count) : null,
+      duration: form.duration || '',
+      requiredSkills: (form.skillsNeeded || []).map(s => ({
+        skillName: s.skillName || s.skill || s.name || '',
+        criticality: s.criticality,
+        domain: s.domain,
+        family: s.family,
+        category: s.category,
+        type: s.type
+      })),
+    };
+    delete payload.skillsNeeded;
+    delete payload.teamMembers;
+    return payload;
+  };
+
+  const handleSave = () => {
+    onSave && onSave(buildSavePayload());
   };
 
   const statusMeta = {
@@ -185,8 +241,7 @@ export default function ProjectDetailModal({ open, onClose, project, onSave, onD
                               <th>Family</th>
                               <th>Category</th>
                               <th>Type</th>
-                              <th>Level</th>
-                              <th style={{width:70}}>Count</th>
+                              <th>Criticity</th>
                               <th style={{width:44}}></th>
                             </tr>
                           </thead>
@@ -200,12 +255,7 @@ export default function ProjectDetailModal({ open, onClose, project, onSave, onD
                                 <td><span className="km-table-text">{s.family || '—'}</span></td>
                                 <td><span className="km-table-text">{s.category || '—'}</span></td>
                                 <td><span className="km-table-text">{s.type || '—'}</span></td>
-                                <td>
-                                  <input className="km-table-input" value={s.level || ''} onChange={handleSkillChange(i, 'level')} />
-                                </td>
-                                <td>
-                                  <input className="km-table-input km-table-num" type="number" value={s.count || ''} onChange={handleSkillChange(i, 'count')} />
-                                </td>
+                                <td><span className="km-table-text">{s.criticality ?? '—'}</span></td>
                                 <td>
                                   <button className="km-btn-icon-sm km-btn-danger-sm" onClick={() => removeSkill(i)} title="Remove">
                                     <svg width="14" height="14" fill="none" viewBox="0 0 14 14"><path d="M2 3.5h10M4.67 3.5V2.33a.83.83 0 01.83-.83h3a.83.83 0 01.83.83V3.5m1.34 0v6.67a.83.83 0 01-.84.83H4.17a.83.83 0 01-.84-.83V3.5h7.34z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -318,12 +368,12 @@ export default function ProjectDetailModal({ open, onClose, project, onSave, onD
                     <span className="km-sidebar-mini-label">Skills</span>
                   </div>
                   <div className="km-sidebar-mini">
-                    <span className="km-sidebar-mini-val">{(form.teamAssigned || []).length}</span>
-                    <span className="km-sidebar-mini-label">Members</span>
+                    <span className="km-sidebar-mini-val">{form.count ?? '—'}</span>
+                    <span className="km-sidebar-mini-label">Required People</span>
                   </div>
                   <div className="km-sidebar-mini">
-                    <span className="km-sidebar-mini-val">{(form.categoryRequirements || []).length}</span>
-                    <span className="km-sidebar-mini-label">Categories</span>
+                    <span className="km-sidebar-mini-val">{(form.teamAssigned || []).length}</span>
+                    <span className="km-sidebar-mini-label">Assigned Members</span>
                   </div>
                 </div>
               </div>
@@ -344,7 +394,7 @@ export default function ProjectDetailModal({ open, onClose, project, onSave, onD
                       View Matching
                     </button>
                   )}
-                  <button className="km-btn km-btn-primary-full" onClick={() => onSave && onSave(form)}>
+                  <button className="km-btn km-btn-primary-full" onClick={handleSave}>
                     <svg width="15" height="15" fill="none" viewBox="0 0 16 16"><path d="M13.3 4.7L6.5 11.5 2.7 7.7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     Save Changes
                   </button>

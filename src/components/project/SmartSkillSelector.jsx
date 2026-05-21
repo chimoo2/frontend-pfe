@@ -153,45 +153,45 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
     <div className="cp-section">
       <h4 className="cp-section-title">
         <svg width="17" height="17" fill="none" viewBox="0 0 17 17"><circle cx="8.5" cy="8.5" r="6.5" stroke="#6366f1" strokeWidth="1.3"/><path d="M8.5 5.5v3.5l2.5 1.5" stroke="#6366f1" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        Sélectionner les compétences requises
+        Select required skills
       </h4>
 
       {error && <div className="cp-alert cp-alert-error">{error}</div>}
 
       <div className="cp-selector-grid">
         <div className="cp-field">
-          <label className="cp-label">Domaine</label>
+          <label className="cp-label">Domain</label>
           <select
             className="cp-input cp-select"
             value={selectedDomain}
             onChange={(e) => setSelectedDomain(e.target.value)}
             disabled={loading || domains.length === 0}
           >
-            <option value="">-- Sélectionner --</option>
+            <option value="">-- Select --</option>
             {domains.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
         <div className="cp-field">
-          <label className="cp-label">Famille</label>
+          <label className="cp-label">Family</label>
           <select
             className="cp-input cp-select"
             value={selectedFamily}
             onChange={(e) => setSelectedFamily(e.target.value)}
             disabled={!selectedDomain || families.length === 0}
           >
-            <option value="">-- Sélectionner --</option>
+            <option value="">-- Select --</option>
             {families.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
         </div>
         <div className="cp-field">
-          <label className="cp-label">Catégorie</label>
+          <label className="cp-label">Category</label>
           <select
             className="cp-input cp-select"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             disabled={!selectedDomain || categories.length === 0}
           >
-            <option value="">-- Sélectionner --</option>
+            <option value="">-- Select --</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -200,7 +200,7 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
       {/* Available Skills */}
       {suggestedSkills.length > 0 && (
         <div className="cp-chips-card">
-          <p className="cp-chips-label">Compétences disponibles</p>
+          <p className="cp-chips-label">Available skills</p>
           <div className="cp-chips-wrap">
             {suggestedSkills.map((skill) => {
               const isSelected = selectedSkills.some(s => s.skillName === skill.skillName);
@@ -224,10 +224,10 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
         <div className="cp-selected-card">
           <div className="cp-selected-header">
             <span className="cp-selected-count">
-              Compétences sélectionnées ({selectedSkills.length})
+              Selected skills ({selectedSkills.length})
             </span>
             <button className="cp-btn cp-btn-sm cp-btn-danger-text" onClick={clearSelection}>
-              Effacer
+              Clear
             </button>
           </div>
           <div className="cp-chips-wrap">
@@ -246,7 +246,7 @@ export default function SmartSkillSelector({ onSkillsSelected }) {
       {loading && (
         <div className="cp-loading">
           <div className="cp-spinner" />
-          <span>Chargement des domaines...</span>
+          <span>Loading domains...</span>
         </div>
       )}
     </div>

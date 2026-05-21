@@ -20,10 +20,10 @@ export default function ForgotPassword() {
 
     try {
       const resp = await forgotPassword(email.trim());
-      setMessage(resp || "Si l'email existe, un message vient d'être envoyé.");
+      setMessage(resp || "If the email exists, a message has just been sent.");
       setSubmitted(true);
     } catch (err) {
-      setError(err.message || "Erreur lors de l'envoi");
+      setError(err.message || "Error while sending");
     } finally {
       setLoading(false);
     }
@@ -42,8 +42,8 @@ export default function ForgotPassword() {
           <div className="mail-icon">
             <MailOutlineIcon className="icon" />
           </div>
-          <h1>Mot de passe oublié</h1>
-          <p>Pas de souci! Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.</p>
+          <h1>Forgot password</h1>
+          <p>No worries! Enter your email address and we'll send you a link to reset your password.</p>
         </div>
 
         {message && (
@@ -61,7 +61,7 @@ export default function ForgotPassword() {
 
         <form onSubmit={handleSubmit} className="forgot-form">
           <div className="form-group">
-            <label htmlFor="email">Adresse email</label>
+            <label htmlFor="email">Email address</label>
             <input
               id="email"
               type="email"
@@ -69,7 +69,7 @@ export default function ForgotPassword() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading || submitted}
-              placeholder="vous@example.com"
+              placeholder="you@example.com"
             />
           </div>
 
@@ -78,21 +78,21 @@ export default function ForgotPassword() {
             className="btn-send" 
             disabled={loading || submitted}
           >
-            {loading ? "Envoi..." : submitted ? "Email envoyé ✓" : "Envoyer le lien"}
+            {loading ? "Sending..." : submitted ? "Email sent ✓" : "Send link"}
           </button>
         </form>
 
         {submitted && (
           <div className="submitted-info">
-            <p>Consultez votre email pour le lien de réinitialisation.</p>
+            <p>Check your email for the reset link.</p>
             <button type="button" className="btn-try-again" onClick={handleReset}>
-              Essayer un autre email
+              Try a different email
             </button>
           </div>
         )}
 
         <div className="forgot-footer">
-          <a href="/signin">Retour à la connexion</a>
+          <a href="/signin">Back to sign in</a>
         </div>
       </div>
     </div>

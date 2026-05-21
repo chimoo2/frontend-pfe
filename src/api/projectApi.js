@@ -89,6 +89,15 @@ export async function getLatestMatching(projectId) {
   }
 }
 
+export async function getAllEmployees() {
+  try {
+    return await apiClient('/api/projects/employees');
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    throw error;
+  }
+}
+
 export async function assignEmployeeToProject(projectId, employeeId) {
   try {
     return await apiClient(`/api/projects/${projectId}/assign/${encodeURIComponent(employeeId)}`, {

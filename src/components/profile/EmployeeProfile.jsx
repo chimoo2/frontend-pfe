@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { apiClient, BASE_URL } from "../../api/apiClient";
 import { getEmployeeNotifications } from "../../api/projectApi";
+import { addUserSkill, deleteUserSkill, getUserSkills, updateUserSkill } from "../../api/userSkillApi";
 import EmployeeRecommendations from "./EmployeeRecommendations";
 import "./EmployeeProfile.css";
 import SkillGraph from "../SkillGraph";
@@ -75,6 +76,21 @@ const getStoredAiSkills = (userId) => {
 	return [];
 };
 
+const normalizeSkillForApi = (skill) => {
+	const skillName = (skill?.skill_name || skill?.name || "").trim();
+	if (!skillName) return null;
+
+	return {
+		skill_name: skillName,
+		category: skill?.category || "",
+		family: skill?.family || "",
+		type: skill?.type || "",
+		level: skill?.level || "Junior",
+		domain: skill?.domain || "",
+		experience: Number(skill?.experience ?? skill?.years_experience ?? 0) || 0,
+	};
+};
+
 export default function EmployeeProfile() {
 	const [profile, setProfile] = useState(null);
 	const [activeSection, setActiveSection] = useState('overview');
@@ -84,8 +100,17 @@ export default function EmployeeProfile() {
 	const [progress, setProgress] = useState(0);
 	const [showSkillModal, setShowSkillModal] = useState(false);
 	const [skills, setSkills] = useState([]);
+	const [isAddingSkill, setIsAddingSkill] = useState(false);
 	const [editingSkill, setEditingSkill] = useState(null);
-	const [editForm, setEditForm] = useState({name: '', level: 'Basic', experience: 0});
+	const [editForm, setEditForm] = useState({
+		skill_name: "",
+		category: "",
+		family: "",
+		type: "Technical",
+		level: "Intermediate",
+		domain: "",
+		experience: 0,
+	});
 	const [newSkill, setNewSkill] = useState({name: '', level: 'Basic', experience: 0});
 	const fileInputRef = useRef(null);
 
@@ -111,6 +136,73 @@ export default function EmployeeProfile() {
 	const photoInputRef = useRef(null);
 	const [employeeNotifications, setEmployeeNotifications] = useState([]);
 	const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+	const [seenNotifIds, setSeenNotifIds] = useState(() => {
+		try { return new Set(JSON.parse(localStorage.getItem('seenNotifIds') || '[]')); }
+		catch { return new Set(); }
+	});
+
+	const newNotifCount = employeeNotifications.filter(n => !seenNotifIds.has(String(n.projectId))).length;
+
+	const syncSkillsToUserSkillTable = async (skillsToSync) => {
+		try {
+			const normalized = (skillsToSync || [])
+				.map(normalizeSkillForApi)
+				.filter(Boolean);
+
+			if (normalized.length === 0) return;
+
+			const existing = await getUserSkills();
+			const existingByName = new Map(
+				(existing || [])
+					.map((s) => [String(s.skillName || s.skill_name || s.name || "").trim().toLowerCase(), s])
+					.filter(([k]) => k)
+			);
+
+			for (const skill of normalized) {
+				const key = skill.skill_name.toLowerCase();
+				const existingSkill = existingByName.get(key);
+				if (existingSkill) {
+					const pathName = existingSkill.skillName || existingSkill.skill_name || existingSkill.name;
+					await updateUserSkill(pathName, skill);
+				} else {
+					await addUserSkill(skill);
+				}
+			}
+		} catch (error) {
+			console.error("Erreur sync user_skill:", error);
+		}
+	};
+
+	const reloadUserSkills = async (userId = profile?.id) => {
+		try {
+			const backend = await getUserSkills();
+			const normalized = Array.isArray(backend)
+				? backend.map((s) => ({
+					skill_name: s.skill_name || s.skillName || s.name || "",
+					category: s.category || "",
+					family: s.family || "",
+					type: s.type || "Technical",
+					level: s.level || "Intermediate",
+					domain: s.domain || "",
+					experience: Number(s.experience ?? s.years_experience ?? 0) || 0,
+				}))
+				: [];
+			setSkills(normalized);
+			setAiSkills(normalized);
+			if (userId) {
+				localStorage.setItem(`employeeSkills_${userId}`, JSON.stringify(normalized));
+				localStorage.setItem(`employeeAiSkills_${userId}`, JSON.stringify(normalized));
+			}
+			return normalized;
+		} catch (e) {
+			console.error("Erreur getUserSkills:", e);
+			if (userId) {
+				setSkills(getStoredSkills(userId));
+				setAiSkills(getStoredAiSkills(userId));
+			}
+			return [];
+		}
+	};
 
 	// Save languages to localStorage whenever they change
 	useEffect(() => {
@@ -152,8 +244,7 @@ export default function EmployeeProfile() {
 	useEffect(() => {
 		if (!profile?.id) return;
 
-		// Load per-user data from localStorage
-		setSkills(getStoredSkills(profile.id));
+		// Keep non-skill profile widgets from localStorage
 		setLanguages(getStoredLanguages(profile.id));
 		setChecklistItems(getStoredChecklist(profile.id));
 
@@ -161,27 +252,22 @@ export default function EmployeeProfile() {
 		const savedPhoto = localStorage.getItem(`employeePhoto_${profile.id}`);
 		if (savedPhoto) setPhotoPreview(savedPhoto);
 
+		reloadUserSkills(profile.id);
+
 		apiClient(`/documents/cv-skills/${profile.id}`)
 			.then(data => {
 				const parsed = typeof data === "string" ? JSON.parse(data) : data;
 				const backendSkills = parsed.skills || [];
-				const storedSkills = getStoredAiSkills(profile.id);
-				
-				// Si nous avons des données localStorage, les fusionner avec le backend
-				if (storedSkills.length > 0) {
-					// Garder les modifications locales et ajouter les nouvelles du backend
-					const existingIds = new Set(storedSkills.map(s => s.name));
-					const newSkills = backendSkills.filter(s => !existingIds.has(s.name));
-					setAiSkills([...storedSkills, ...newSkills]);
-				} else {
-					// Si pas de données locales, utiliser celles du backend
-					setAiSkills(backendSkills);
-				}
+				const storedAiSkills = getStoredAiSkills(profile.id);
+				const localManualSkills = getStoredSkills(profile.id);
+				const mergedForSync = [...backendSkills, ...storedAiSkills, ...localManualSkills];
+
+				syncSkillsToUserSkillTable(mergedForSync)
+					.then(() => reloadUserSkills(profile.id));
 			})
 			.catch(() => {
-				// Pas de CV uploadé → vider les skills IA
-				setAiSkills([]);
-				localStorage.removeItem(`employeeAiSkills_${profile.id}`);
+				// If CV parsing unavailable, keep DB skills as source of truth
+				reloadUserSkills(profile.id);
 			});
 
 		getEmployeeNotifications(profile.id)
@@ -197,40 +283,48 @@ export default function EmployeeProfile() {
 	const renderNotificationBell = () => {
 		const count = employeeNotifications.length;
 		return (
-			<div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+			<div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px', position: 'relative' }}>
 				<button
 					type="button"
 					onClick={() => setShowNotificationPanel((prev) => !prev)}
-					title="Project notifications"
+					title="Project assignments"
 					style={{
 						position: 'relative',
-						border: '1px solid #dbeafe',
+						width: '44px',
+						height: '44px',
+						border: '1px solid #e5e7eb',
 						background: '#ffffff',
-						borderRadius: '999px',
-						padding: '8px 12px',
+						borderRadius: '12px',
 						cursor: 'pointer',
-						fontSize: '1rem',
-						fontWeight: 700,
-						color: '#1d4ed8'
+						display: 'inline-flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+						transition: 'all 0.15s'
 					}}
 				>
-					🔔 Notifications
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+						<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+						<path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+					</svg>
 					{count > 0 && (
 						<span
 							style={{
 								position: 'absolute',
-								top: '-6px',
-								right: '-6px',
-								minWidth: '20px',
-								height: '20px',
+								top: '-4px',
+								right: '-4px',
+								minWidth: '18px',
+								height: '18px',
 								borderRadius: '999px',
 								background: '#ef4444',
 								color: '#fff',
-								fontSize: '0.75rem',
+								fontSize: '0.7rem',
+								fontWeight: 700,
 								display: 'inline-flex',
 								alignItems: 'center',
 								justifyContent: 'center',
-								padding: '0 6px'
+								padding: '0 5px',
+								border: '2px solid #fff'
 							}}
 						>
 							{count}
@@ -248,19 +342,34 @@ export default function EmployeeProfile() {
 			<div
 				style={{
 					marginBottom: '20px',
-					padding: '14px',
+					padding: '18px',
 					borderRadius: '14px',
 					background: '#ffffff',
 					border: '1px solid #e5e7eb',
 					boxShadow: '0 10px 24px rgba(17, 24, 39, 0.08)'
 				}}
 			>
-				<div style={{ fontWeight: 700, color: '#1f2937', marginBottom: '12px' }}>
-					Voir recommandations par projet
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '12px', borderBottom: '1px solid #f3f4f6' }}>
+					<div>
+						<div style={{ fontWeight: 700, color: '#111827', fontSize: '1.05rem' }}>
+							My Project Assignments
+						</div>
+						<div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '2px' }}>
+							Projects assigned to you by managers
+						</div>
+					</div>
+					<button
+						onClick={() => setShowNotificationPanel(false)}
+						style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.2rem' }}
+					>
+						✕
+					</button>
 				</div>
 
 				{employeeNotifications.length === 0 && (
-					<div style={{ color: '#6b7280' }}>Aucune notification pour le moment.</div>
+					<div style={{ color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>
+						No assignments yet. Your manager hasn't assigned you to any project.
+					</div>
 				)}
 
 				{employeeNotifications.map((item, idx) => (
@@ -268,34 +377,42 @@ export default function EmployeeProfile() {
 						key={`${item.projectId}-${idx}`}
 						style={{
 							border: '1px solid #e5e7eb',
-							borderRadius: '12px',
-							padding: '12px',
+							borderLeft: '4px solid #6366f1',
+							borderRadius: '10px',
+							padding: '14px',
 							marginBottom: '10px',
-							background: item.assigned ? '#ecfdf5' : '#eff6ff'
+							background: '#fafbff'
 						}}
 					>
-						<div style={{ fontWeight: 700, color: '#111827' }}>{item.projectName}</div>
-						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
-							Manager: <strong>{item.managerName || '-'}</strong>
-						</div>
-						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
-							Type: {item.assigned ? 'Assignment' : 'Matching'}
-						</div>
-						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
-							Score: <strong>{formatNotificationScore(item.score)}</strong>
-						</div>
-						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
-							Missing skills: {(item.missingSkills || []).length > 0 ? item.missingSkills.join(', ') : 'None'}
-						</div>
-						<div style={{ color: '#374151', fontSize: '0.92rem', marginTop: '4px' }}>
-							Recommended courses:
-							<ul style={{ margin: '6px 0 0 18px' }}>
-								{(item.recommendedCourses || []).length > 0 ? (
-									item.recommendedCourses.map((course, cIdx) => <li key={`${item.projectId}-${cIdx}`}>{course}</li>)
-								) : (
-									<li>No recommendation</li>
+						<div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+							<div style={{ flex: 1 }}>
+								<div style={{ fontWeight: 700, color: '#111827', fontSize: '1rem' }}>
+									{item.projectName}
+								</div>
+								{item.projectDescription && (
+									<div style={{ color: '#6b7280', fontSize: '0.85rem', marginTop: '4px' }}>
+										{item.projectDescription}
+									</div>
 								)}
-							</ul>
+								<div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '0.85rem' }}>
+									<span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eef2ff', color: '#4338ca', padding: '3px 8px', borderRadius: '6px', fontWeight: 600 }}>
+										👤 {item.managerName || 'Manager'}
+									</span>
+									{item.status && (
+										<span style={{ background: '#f3f4f6', color: '#374151', padding: '3px 8px', borderRadius: '6px', fontWeight: 500 }}>
+											{item.status}
+										</span>
+									)}
+									{item.duration && (
+										<span style={{ background: '#f3f4f6', color: '#374151', padding: '3px 8px', borderRadius: '6px', fontWeight: 500 }}>
+											⏱ {item.duration}
+										</span>
+									)}
+								</div>
+							</div>
+							<span style={{ background: '#10b981', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
+								✓ Assigned
+							</span>
 						</div>
 					</div>
 				))}
@@ -310,7 +427,13 @@ export default function EmployeeProfile() {
 				section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			}
 		}
-	}, [activeSection]);
+		if (activeSection === 'recommendations' && employeeNotifications.length > 0) {
+			const allIds = employeeNotifications.map(n => String(n.projectId));
+			const updated = new Set([...seenNotifIds, ...allIds]);
+			setSeenNotifIds(updated);
+			localStorage.setItem('seenNotifIds', JSON.stringify([...updated]));
+		}
+	}, [activeSection, employeeNotifications]);
 
 	function handleFiles(files) {
 		if (!files || files.length === 0) return;
@@ -389,7 +512,8 @@ export default function EmployeeProfile() {
 			try {
 				const skillsData = await apiClient(`/documents/cv-skills/${profile.id}`);
 				const parsed = JSON.parse(skillsData);
-				setAiSkills(parsed.skills || []);
+				await syncSkillsToUserSkillTable(parsed.skills || []);
+				await reloadUserSkills(profile.id);
 			} catch (e) {
 				console.error("Erreur récupération skills IA:", e);
 			}
@@ -420,6 +544,18 @@ export default function EmployeeProfile() {
 			experience: parseInt(newSkill.experience) || 0
 		};
 		setSkills([...skills, skill]);
+		setAiSkills(prev => ([
+			...prev,
+			{
+				name: skill.name,
+				level: skill.level,
+				experience: skill.experience,
+				category: '',
+				family: '',
+				type: '',
+				domain: ''
+			}
+		]));
 		setNewSkill({name: '', level: 'Basic', experience: 0});
 		setShowSkillModal(false);
 	}
@@ -439,7 +575,16 @@ export default function EmployeeProfile() {
 
 	function cancelEditing() {
 		setEditingSkill(null);
-		setEditForm({name: '', level: 'Basic', experience: 0});
+		setIsAddingSkill(false);
+		setEditForm({
+			skill_name: "",
+			category: "",
+			family: "",
+			type: "Technical",
+			level: "Intermediate",
+			domain: "",
+			experience: 0,
+		});
 	}
 
 	function saveSkill(id) {
@@ -460,6 +605,78 @@ export default function EmployeeProfile() {
 			[name]: name === 'experience' ? parseInt(value) || 0 : value
 		}));
 	}
+
+	const handleAddSkillClick = () => {
+		setIsAddingSkill(true);
+		setEditingSkill("new");
+		setEditForm({
+			skill_name: "",
+			category: "",
+			family: "",
+			type: "Technical",
+			level: "Intermediate",
+			domain: "",
+			experience: 0,
+		});
+	};
+
+	const handleStartEditingUserSkill = (skill, index) => {
+		setIsAddingSkill(false);
+		setEditingSkill(index);
+		setEditForm({
+			skill_name: skill?.skill_name || skill?.skillName || skill?.name || "",
+			category: skill?.category || "",
+			family: skill?.family || "",
+			type: skill?.type || "Technical",
+			level: skill?.level || "Intermediate",
+			domain: skill?.domain || "",
+			experience: Number(skill?.experience ?? 0) || 0,
+		});
+	};
+
+	const handleSaveUserSkill = async (index) => {
+		const payload = {
+			skill_name: (editForm.skill_name || "").trim(),
+			category: editForm.category || "",
+			family: editForm.family || "",
+			type: editForm.type || "Technical",
+			level: editForm.level || "Intermediate",
+			domain: editForm.domain || "",
+			experience: Number(editForm.experience) || 0,
+		};
+
+		if (!payload.skill_name) return;
+
+		try {
+			if (editingSkill === "new") {
+				await addUserSkill(payload);
+			} else {
+				const existingSkill = skills[index];
+				const skillPath = existingSkill?.skill_name || existingSkill?.skillName || existingSkill?.name || payload.skill_name;
+				await updateUserSkill(skillPath, payload);
+			}
+
+			await reloadUserSkills();
+			setEditingSkill(null);
+			setIsAddingSkill(false);
+		} catch (e) {
+			console.error("Erreur save skill:", e);
+			alert("Erreur lors de l'enregistrement de la compétence. Vérifiez que le backend est démarré.");
+		}
+	};
+
+	const handleDeleteUserSkill = async (index) => {
+		try {
+			const skill = skills[index];
+			const skillPath = skill?.skill_name || skill?.skillName || skill?.name;
+			if (!skillPath) return;
+			await deleteUserSkill(skillPath);
+			await reloadUserSkills();
+		} catch (e) {
+			console.error("Erreur delete skill:", e);
+			alert("Erreur lors de la suppression de la compétence. Vérifiez que le backend est démarré.");
+		}
+	};
 
 	function startEditingAiSkill(skill, index) {
 		setEditingAiSkill(index);
@@ -516,8 +733,14 @@ export default function EmployeeProfile() {
 		.slice(0, 3);
 
 	const combinedSkills = Array.from(new Set([
-		...skills.map(skill => skill.name?.trim()).filter(Boolean),
-		...aiSkills.map(skill => (typeof skill === 'string' ? skill.trim() : skill.name?.trim())).filter(Boolean),
+		...skills
+			.map(skill => (skill?.skill_name || skill?.skillName || skill?.name || '').trim())
+			.filter(Boolean),
+		...aiSkills
+			.map(skill => (typeof skill === 'string'
+				? skill.trim()
+				: (skill?.skill_name || skill?.skillName || skill?.name || '').trim()))
+			.filter(Boolean),
 	]));
 	
 	const getCategoryStats = () => {
@@ -724,7 +947,7 @@ export default function EmployeeProfile() {
 				<Sidebar
 					activeSection={activeSection}
 					onSectionChange={setActiveSection}
-					notificationsCount={employeeNotifications.length}
+					notificationsCount={newNotifCount}
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout" style={{ padding: 0, background: 'transparent' }}>
@@ -740,7 +963,7 @@ export default function EmployeeProfile() {
 				<Sidebar
 					activeSection={activeSection}
 					onSectionChange={setActiveSection}
-					notificationsCount={employeeNotifications.length}
+					notificationsCount={newNotifCount}
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout">
@@ -756,7 +979,7 @@ export default function EmployeeProfile() {
 				<Sidebar
 					activeSection={activeSection}
 					onSectionChange={setActiveSection}
-					notificationsCount={employeeNotifications.length}
+					notificationsCount={newNotifCount}
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout">
@@ -772,21 +995,23 @@ export default function EmployeeProfile() {
 				<Sidebar
 					activeSection={activeSection}
 					onSectionChange={setActiveSection}
-					notificationsCount={employeeNotifications.length}
+					notificationsCount={newNotifCount}
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout">
 					<div className="employee-profile">
 						<SkillSection
 							sectionId="skills"
-							aiSkills={aiSkills}
-							editingAiSkill={editingAiSkill}
-							editAiForm={editAiForm}
-							onStartEditingAiSkill={startEditingAiSkill}
-							onCancelEditingAiSkill={cancelEditingAiSkill}
-							onSaveAiSkill={saveAiSkill}
-							onDeleteAiSkill={deleteAiSkill}
-							onAiEditInputChange={handleAiEditInputChange}
+							skills={skills}
+							editingSkill={editingSkill}
+							editForm={editForm}
+							onStartEditingSkill={handleStartEditingUserSkill}
+							onCancelEditingSkill={cancelEditing}
+							onSaveSkill={handleSaveUserSkill}
+							onDeleteSkill={handleDeleteUserSkill}
+							onEditInputChange={handleEditInputChange}
+							onAddSkillClick={handleAddSkillClick}
+							isAddingSkill={isAddingSkill}
 						/>
 					</div>
 				</div>
@@ -800,7 +1025,7 @@ export default function EmployeeProfile() {
 				<Sidebar
 					activeSection={activeSection}
 					onSectionChange={setActiveSection}
-					notificationsCount={employeeNotifications.length}
+					notificationsCount={newNotifCount}
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout">
@@ -818,7 +1043,7 @@ export default function EmployeeProfile() {
 				<Sidebar
 					activeSection={activeSection}
 					onSectionChange={setActiveSection}
-					notificationsCount={employeeNotifications.length}
+					notificationsCount={newNotifCount}
 					onOpenNotifications={() => setActiveSection('recommendations')}
 				/>
 				<div className="profile-layout">
@@ -847,7 +1072,7 @@ export default function EmployeeProfile() {
 			<Sidebar
 				activeSection={activeSection}
 				onSectionChange={setActiveSection}
-				notificationsCount={employeeNotifications.length}
+				notificationsCount={newNotifCount}
 				onOpenNotifications={() => setActiveSection('recommendations')}
 			/>
 			<div className="profile-layout">
@@ -1283,14 +1508,16 @@ export default function EmployeeProfile() {
 
 			<SkillSection
 				sectionId="skills"
-				aiSkills={aiSkills}
-				editingAiSkill={editingAiSkill}
-				editAiForm={editAiForm}
-				onStartEditingAiSkill={startEditingAiSkill}
-				onCancelEditingAiSkill={cancelEditingAiSkill}
-				onSaveAiSkill={saveAiSkill}
-				onDeleteAiSkill={deleteAiSkill}
-				onAiEditInputChange={handleAiEditInputChange}
+				skills={skills}
+				editingSkill={editingSkill}
+				editForm={editForm}
+				onStartEditingSkill={handleStartEditingUserSkill}
+				onCancelEditingSkill={cancelEditing}
+				onSaveSkill={handleSaveUserSkill}
+				onDeleteSkill={handleDeleteUserSkill}
+				onEditInputChange={handleEditInputChange}
+				onAddSkillClick={handleAddSkillClick}
+				isAddingSkill={isAddingSkill}
 			/>
 		{/* Add Skill Modal */}
 			{showSkillModal && (

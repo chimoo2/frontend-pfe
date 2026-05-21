@@ -122,7 +122,7 @@ export default function Header() {
             {user ? (
               <div className="user-info">
                 <button className="logout-btn" onClick={handleLogout}>
-                  Déconnexion
+                 Logout
                 </button>
               </div>
             ) : (
@@ -180,7 +180,7 @@ export default function Header() {
             {user ? (
               <div className="mobile-user-info">
                 <button className="mobile-logout-btn" onClick={() => { handleLogout(); setOpen(false); }}>
-                  Déconnexion
+                  Log out
                 </button>
               </div>
             ) : (

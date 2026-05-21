@@ -1,10 +1,11 @@
 import React from 'react';
 import KanbanBoard from '../../components/kanban/KanbanBoard';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import '../../components/kanban/KanbanBoard.css';
 
 export default function ProjectKanban() {
   const navigate = useNavigate();
+  const { search } = useOutletContext() || {};
 
   return (
     <div className="kb-page">
@@ -18,7 +19,7 @@ export default function ProjectKanban() {
           New Project
         </button>
       </div>
-      <KanbanBoard />
+      <KanbanBoard search={search} />
     </div>
   );
 }

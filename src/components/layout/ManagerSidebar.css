@@ -1,108 +1,211 @@
-/* Sidebar Toggle Button - Right of sidebar (smaller, refined) */
+/* Sidebar Toggle Button - Modern & Premium Design - Ultra Compact Size */
 .sidebar-toggle {
   position: fixed;
   top: calc(72px + 1.25rem);
-  /* sit just to the right of the open sidebar (sidebar width 280px) */
   left: calc(280px + 10px);
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, rgba(111,115,249,0.96) 0%, rgba(168,107,255,0.96) 100%);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 105;
-  transition: left 0.36s cubic-bezier(0.22,1,0.36,1), transform 0.22s, box-shadow 0.22s, opacity 0.2s;
-  box-shadow: 0 6px 18px rgba(99,102,241,0.12);
-  backdrop-filter: blur(5px);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 
+    0 2px 8px rgba(99, 102, 241, 0.2),
+    0 0 20px rgba(168, 85, 247, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: inherit;
+  padding: 0;
 }
 
-/* Decorative neon ring */
+/* Premium glow effect */
 .sidebar-toggle::before {
   content: '';
   position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(123,102,255,0.18), transparent 30%), radial-gradient(circle at 70% 70%, rgba(99,102,241,0.12), transparent 30%);
+  inset: -4px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.1));
   filter: blur(6px);
-  opacity: 0.6;
-  transition: opacity 0.3s, transform 0.3s;
+  opacity: 0.5;
+  transition: opacity 0.4s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
+  z-index: -1;
+  animation: glow-pulse 3s ease-in-out infinite;
 }
 
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.08); }
+}
+
+/* Inner shine effect */
 .sidebar-toggle::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 18px rgba(99,102,241,0.06);
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%, rgba(255, 255, 255, 0.05) 100%);
   pointer-events: none;
+  box-shadow: 
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -0.5px 0 rgba(0, 0, 0, 0.1);
 }
 
+/* Enhanced hover state - with dynamic color shift */
 .sidebar-toggle:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 14px 34px rgba(99,102,241,0.18), 0 0 44px rgba(168,107,255,0.06);
+  transform: translateY(-2px) scale(1.1) rotate(2deg);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  box-shadow: 
+    0 6px 16px rgba(99, 102, 241, 0.25),
+    0 0 30px rgba(217, 70, 239, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
-.sidebar-toggle:active { transform: translateY(-1px) scale(0.98); }
+.sidebar-toggle:hover::before {
+  animation: glow-pulse-intense 0.3s ease-out forwards;
+}
 
+@keyframes glow-pulse-intense {
+  0% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+/* Enhanced active state */
+.sidebar-toggle:active { 
+  transform: translateY(-1px) scale(0.96);
+  box-shadow: 
+    0 5px 20px rgba(99, 102, 241, 0.2),
+    inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Hamburger Menu Lines - Smooth animations */
 .hamburger {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 3.5px;
-  width: 14px;
-  height: 10px;
+  gap: 2px;
+  width: 12px;
+  height: 9px;
+  position: relative;
+  z-index: 2;
 }
 
 .hamburger .line {
   width: 100%;
-  height: 1.6px;
-  background: linear-gradient(90deg, #ffffff, rgba(255,255,255,0.9));
-  opacity: 0.98;
-  border-radius: 2px;
-  transition: transform 0.32s cubic-bezier(0.22,1,0.36,1), opacity 0.22s, background 0.3s;
+  height: 1px;
+  background: linear-gradient(90deg, #ffffff, rgba(255, 255, 255, 0.95));
+  opacity: 0.95;
+  border-radius: 1px;
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   transform-origin: center;
+  box-shadow: 0 0.5px 2px rgba(99, 102, 241, 0.2);
 }
 
-/* When sidebar is closed, bring the toggle close to viewport edge */
-.sidebar-toggle.closed { left: 8px; border-radius: 12px; }
-
-/* Hamburger animations for closed state */
-.sidebar-toggle.closed .line-1 { transform: rotate(45deg) translateY(5px); }
-.sidebar-toggle.closed .line-2 { opacity: 0; transform: scaleX(0.5); }
-.sidebar-toggle.closed .line-3 { transform: rotate(-45deg) translateY(-5px); }
-
-/* Subtle breathing when idle */
-.sidebar-toggle.idle::before { transform: scale(1.02); opacity: 0.5; animation: neon-breathe 4s ease-in-out infinite; }
-
-@keyframes neon-breathe {
-  0% { opacity: 0.45; transform: scale(1); }
-  50% { opacity: 0.75; transform: scale(1.06); }
-  100% { opacity: 0.45; transform: scale(1); }
+/* When sidebar is closed, bring the toggle close to viewport edge and morph to X */
+.sidebar-toggle.closed { 
+  left: 12px; 
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  animation: slide-in-left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* SVG toggle icon styles (polished) */
-.toggle-icon { display: block; width: 18px; height: 14px; }
-.toggle-icon rect { fill: #ffffff; transition: transform 0.34s cubic-bezier(0.22,1,0.36,1), opacity 0.22s, fill 0.25s; transform-origin: 9px 7px; }
+.sidebar-toggle.open {
+  animation: slide-in-right 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-/* open state (menu visible): small subtle offset for charm */
-.sidebar-toggle.open .r1 { transform: translateY(0); }
-.sidebar-toggle.open .r2 { transform: translateY(0); opacity: 1; }
-.sidebar-toggle.open .r3 { transform: translateY(0); }
+@keyframes slide-in-left {
+  from {
+    left: calc(280px + 10px);
+    opacity: 0.8;
+  }
+  to {
+    left: 12px;
+    opacity: 1;
+  }
+}
 
-/* closed state -> morph to X */
-.sidebar-toggle.closed .r1 { transform: translateY(6px) rotate(45deg); }
-.sidebar-toggle.closed .r2 { opacity: 0; transform: scaleX(0.45); }
-.sidebar-toggle.closed .r3 { transform: translateY(-6px) rotate(-45deg); }
+@keyframes slide-in-right {
+  from {
+    left: 12px;
+    opacity: 0.8;
+  }
+  to {
+    left: calc(280px + 10px);
+    opacity: 1;
+  }
+}
 
-/* subtle focus ring for accessibility */
-.sidebar-toggle:focus { outline: none; box-shadow: 0 0 0 4px rgba(111,115,249,0.12); }
+/* Hamburger animations for closed state - morphs to X */
+.sidebar-toggle.closed .line-1 { 
+  transform: rotate(45deg) translateY(8px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
 
-/* tooltip accessible (title attribute used) */
+.sidebar-toggle.closed .line-2 { 
+  opacity: 0;
+  transform: scaleX(0.3);
+}
+
+.sidebar-toggle.closed .line-3 { 
+  transform: rotate(-45deg) translateY(-8px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+/* Open state - lines are straight */
+.sidebar-toggle.open .line-1 { 
+  transform: translateY(0) rotate(0deg);
+}
+
+.sidebar-toggle.open .line-2 { 
+  opacity: 0.95;
+  transform: translateY(0) scaleX(1);
+}
+
+.sidebar-toggle.open .line-3 { 
+  transform: translateY(0) rotate(0deg);
+}
+
+/* Focus state - modern ring for accessibility */
+.sidebar-toggle:focus { 
+  outline: none;
+  box-shadow: 
+    0 10px 40px rgba(99, 102, 241, 0.25),
+    0 0 60px rgba(168, 85, 247, 0.15),
+    0 0 0 4px rgba(99, 102, 241, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-toggle:focus-visible {
+  box-shadow: 
+    0 10px 40px rgba(99, 102, 241, 0.3),
+    0 0 60px rgba(168, 85, 247, 0.2),
+    0 0 0 5px rgba(99, 102, 241, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
+/* Ripple effect on click */
+@keyframes ripple-effect {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(99, 102, 241, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+  }
+}
+
+.sidebar-toggle:active::before {
+  animation: ripple-effect 0.6s ease-out;
+}
 
 .manager-sidebar {
   width: 280px;

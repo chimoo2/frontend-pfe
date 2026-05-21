@@ -19,13 +19,19 @@ export default function Signin() {
     setLoading(true);
 
     try {
-      const user = await login(email.trim().toLowerCase(), password);
+      const result = await login(email.trim().toLowerCase(), password);
       setLoading(false);
 
+      // First-login: backend requires a password change
+      if (result?.forcePasswordChange) {
+        navigate("/change-password");
+        return;
+      }
+
       // Redirect based on role
-      if (user?.role === "ROLE_ADMIN") {
+      if (result?.role === "ROLE_ADMIN") {
         navigate("/admin");
-      } else if (user?.role === "ROLE_MANAGER") {
+      } else if (result?.role === "ROLE_MANAGER") {
         navigate("/manager");
       } else {
         navigate("/profile");
@@ -85,11 +91,11 @@ export default function Signin() {
 
               <button className="signin-btn" type="submit" disabled={loading} aria-busy={loading}>{loading ? 'Signing...' : 'Sign in'}</button>
 
-              <div className="or">OR</div>
+              
 
               
 
-              <p className="muted center">Don't have an account? <Link to="/signup">Sign up</Link></p>
+              
             </form>
           </div>
         </div>

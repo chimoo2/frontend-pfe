@@ -59,17 +59,39 @@ export default function Dashboardemploye({ skills: propSkills, aiSkills: propAiS
     const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
-        // Use props if provided, otherwise fall back to localStorage (scoped by user)
-        const currentSkills = propSkills !== undefined ? propSkills : getStoredSkills(user?.id);
-        const currentAiSkills = propAiSkills !== undefined ? propAiSkills : getStoredAiSkills(user?.id);
+        // Combine toujours les deux sources
+        const currentSkills = Array.isArray(propSkills) ? propSkills : [];
+        const currentAiSkills = Array.isArray(propAiSkills) ? propAiSkills : [];
+       const combinedSkills = [...currentSkills, ...currentAiSkills];
+
+const getSkillKey = (skill) => {
+  if (typeof skill === "string") {
+    return skill.toLowerCase().trim();
+  }
+
+  return (
+    skill?.skill_name ||
+    skill?.skill ||
+    skill?.name ||
+    ""
+  )
+    .toLowerCase()
+    .trim();
+};
+
+const uniqueSkills = combinedSkills.filter((skill, index, self) => {
+  const key = getSkillKey(skill);
+
+  if (!key) return false;
+
+  return index === self.findIndex(s => getSkillKey(s) === key);
+});
         if (propNotifications !== undefined) setNotifications(Array.isArray(propNotifications) ? propNotifications : []);
         setSkills(currentSkills);
         setAiSkills(currentAiSkills);
 
-        const combinedSkills = [...currentSkills, ...currentAiSkills];
         const familyStats = {}, categoryStats = {}, typeStats = {}, domainStats = {};
-
-        combinedSkills.forEach(skill => {
+        uniqueSkills.forEach(skill => {
             const s = typeof skill === 'string' ? { name: skill } : skill || {};
             if (s.family?.trim())   familyStats[s.family.trim()]     = (familyStats[s.family.trim()] || 0) + 1;
             if (s.category?.trim()) categoryStats[s.category.trim()] = (categoryStats[s.category.trim()] || 0) + 1;
@@ -79,7 +101,7 @@ export default function Dashboardemploye({ skills: propSkills, aiSkills: propAiS
 
         setStats({ family: familyStats, category: categoryStats, type: typeStats, domain: domainStats });
         setSummary({
-            totalSkills: combinedSkills.length,
+            totalSkills: uniqueSkills.length,
             uniqueFamilies: Object.keys(familyStats).length,
             uniqueCategories: Object.keys(categoryStats).length,
             uniqueTypes: Object.keys(typeStats).length,
